@@ -1,0 +1,21 @@
+ћасштабирование от количества запросов к приложению
+»з этого раздела вы узнаете, как настроить автоматическое масштабирование кластера в зависимости от количества запросов к приложению (Requests Per Second, RPS).
+
+јлгоритм работы
+Ingress-контроллер передает в систему мониторинга Prometheus информацию о количестве запросов к приложению.
+
+Prometheus создает и публикует метрику nginx_ingress_controller_requests_per_second Ч количество запросов к приложению за секунду.
+
+„тобы создать такую метрику, в конфигурационный файл Prometheus values-prom.yaml добавлено правило:
+
+rules:
+  groups:
+    - name: Ingress
+      rules:
+        - record: nginx_ingress_controller_requests_per_second
+          expr: rate(nginx_ingress_controller_requests[2m])
+
+Ќа основании данных метрики средства автоматического масштабировани€ внос€т изменени€ в количество подов и узлов.
+
+https://yandex.cloud/ru/docs/tutorials/container-infrastructure/autoscaling#rps-autoscaling
+https://yandex.cloud/ru/docs/tutorials/container-infrastructure/autoscaling?utm_referrer=https%3A%2F%2Fwww.google.com%2F
