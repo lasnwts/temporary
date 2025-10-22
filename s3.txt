@@ -1,0 +1,19 @@
+
+public ObjectWriteResponse uploadFile(String fileName, byte[] content) throws Exception {
+   return minioClient.putObject(PutObjectArgs.builder()
+         .bucket(bucketName)
+         .object(fileName)
+         .stream(new ByteArrayInputStream(content), content.length, -1)
+         .build());
+}
+
+public String getUrl(String fileName) throws WebServiceException  {
+      return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+            .method(Method.GET)
+            .bucket(bucketName)
+            .object(fileName)
+            .expiry(lifetime, TimeUnit.DAYS)
+            .build()
+      );
+
+}
