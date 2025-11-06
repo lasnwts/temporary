@@ -1,3 +1,0 @@
-http://www.java2s.com/example/jar/m/download-mssqljdbc622jre8jar-file.html
-https://stackoverflow.com/questions/48309104/how-do-i-install-mssql-jdbc-driver-to-confluent-kafka
- 
