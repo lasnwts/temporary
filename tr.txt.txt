@@ -1,0 +1,6 @@
+# Включение трансформации
+transforms=dropIdField
+# Тип трансформации: удаление полей
+transforms.dropIdField.type=org.apache.kafka.connect.transforms.ReplaceField$Value
+# Список полей для удаления (через запятую, если их несколько)
+transforms.dropIdField.exclude=id
