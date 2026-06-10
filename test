@@ -22,3 +22,5 @@ connections.max.idle.ms = 300000
 default.api.timeout.ms = 60000
 enable.metrics.push = true
 metadata.max.age.ms = 300000
+
+logging.level.org.apache.kafka=WARN
