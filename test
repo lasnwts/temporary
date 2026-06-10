@@ -1,0 +1,24 @@
+2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-4] o.a.kafka.common.utils.AppInfoParser : Kafka version: 3.7.2
+2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-4] o.a.kafka.common.utils.AppInfoParser : Kafka commitId: 79a8f2b5f44f9d5a
+2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-4] o.a.kafka.common.utils.AppInfoParser : Kafka startTimeMs: 1781087737423
+2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-3] o.a.kafka.common.utils.AppInfoParser : Kafka version: 3.7.2
+2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-3] o.a.kafka.common.utils.AppInfoParser : Kafka commitId: 79a8f2b5f44f9d5a
+2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-3] o.a.kafka.common.utils.AppInfoParser : Kafka startTimeMs: 1781087737423
+2026-06-10T13:35:37.487+03:00 INFO 1 --- [adminclient-303] o.a.kafka.common.utils.AppInfoParser : App info kafka.admin.client for adminclient-303 unregistered
+2026-06-10T13:35:37.493+03:00 INFO 1 --- [adminclient-303] o.apache.kafka.common.metrics.Metrics : Metrics scheduler closed
+2026-06-10T13:35:37.493+03:00 INFO 1 --- [adminclient-303] o.apache.kafka.common.metrics.Metrics : Closing reporter org.apache.kafka.common.metrics.JmxReporter
+2026-06-10T13:35:37.493+03:00 INFO 1 --- [adminclient-303] o.apache.kafka.common.metrics.Metrics : Metrics reporters closed
+2026-06-10T13:35:37.553+03:00 INFO 1 --- [adminclient-304] o.a.kafka.common.utils.AppInfoParser : App info kafka.admin.client for adminclient-304 unregistered
+2026-06-10T13:35:37.554+03:00 INFO 1 --- [adminclient-304] o.apache.kafka.common.metrics.Metrics : Metrics scheduler closed
+2026-06-10T13:35:37.554+03:00 INFO 1 --- [adminclient-304] o.apache.kafka.common.metrics.Metrics : Closing reporter org.apache.kafka.common.metrics.JmxReporter
+2026-06-10T13:35:37.554+03:00 INFO 1 --- [adminclient-304] o.apache.kafka.common.metrics.Metrics : Metrics reporters closed
+2026-06-10T13:35:47.363+03:00 INFO 1 --- [nio-8080-exec-6] o.a.k.clients.admin.AdminClientConfig : AdminClientConfig values:
+auto.include.jmx.reporter = true
+bootstrap.controllers = []
+bootstrap.servers = [msk-pr01kafka.fc.uralsibbank.ru:9093, msk-pr02kafka.fc.uralsibbank.ru:9093, msk-pr03kafka.fc.uralsibbank.ru:9093]
+client.dns.lookup = use_all_dns_ips
+client.id =
+connections.max.idle.ms = 300000
+default.api.timeout.ms = 60000
+enable.metrics.push = true
+metadata.max.age.ms = 300000
