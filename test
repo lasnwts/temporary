@@ -24,3 +24,5 @@ enable.metrics.push = true
 metadata.max.age.ms = 300000
 
 logging.level.org.apache.kafka=WARN
+
+declare v number;  begin v := ibs.executor.lockopen; end;  
