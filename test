@@ -26,3 +26,20 @@ metadata.max.age.ms = 300000
 logging.level.org.apache.kafka=WARN
 
 declare v number;  begin v := ibs.executor.lockopen; end;  
+
+{
+	"sourceCode": "RTL",
+	"messages": [
+		{
+			"serviceName": "Банковская подписка",
+			"serviceCode": "SUBSCRIPTION",
+			"period": "GG",
+			"name": "Тариф за подключение к услуге \\\"Банковская подписка\\\" - 12 Месяцев",
+			"dateStart": "01/01/1990",
+			"value": "2990",
+			"calc_value": 1287589082701,
+			"valute": "RUR",
+			"id_t": 1287589082695
+		}
+	]
+}
