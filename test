@@ -1,45 +1,48 @@
-2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-4] o.a.kafka.common.utils.AppInfoParser : Kafka version: 3.7.2
-2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-4] o.a.kafka.common.utils.AppInfoParser : Kafka commitId: 79a8f2b5f44f9d5a
-2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-4] o.a.kafka.common.utils.AppInfoParser : Kafka startTimeMs: 1781087737423
-2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-3] o.a.kafka.common.utils.AppInfoParser : Kafka version: 3.7.2
-2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-3] o.a.kafka.common.utils.AppInfoParser : Kafka commitId: 79a8f2b5f44f9d5a
-2026-06-10T13:35:37.423+03:00 INFO 1 --- [nio-8080-exec-3] o.a.kafka.common.utils.AppInfoParser : Kafka startTimeMs: 1781087737423
-2026-06-10T13:35:37.487+03:00 INFO 1 --- [adminclient-303] o.a.kafka.common.utils.AppInfoParser : App info kafka.admin.client for adminclient-303 unregistered
-2026-06-10T13:35:37.493+03:00 INFO 1 --- [adminclient-303] o.apache.kafka.common.metrics.Metrics : Metrics scheduler closed
-2026-06-10T13:35:37.493+03:00 INFO 1 --- [adminclient-303] o.apache.kafka.common.metrics.Metrics : Closing reporter org.apache.kafka.common.metrics.JmxReporter
-2026-06-10T13:35:37.493+03:00 INFO 1 --- [adminclient-303] o.apache.kafka.common.metrics.Metrics : Metrics reporters closed
-2026-06-10T13:35:37.553+03:00 INFO 1 --- [adminclient-304] o.a.kafka.common.utils.AppInfoParser : App info kafka.admin.client for adminclient-304 unregistered
-2026-06-10T13:35:37.554+03:00 INFO 1 --- [adminclient-304] o.apache.kafka.common.metrics.Metrics : Metrics scheduler closed
-2026-06-10T13:35:37.554+03:00 INFO 1 --- [adminclient-304] o.apache.kafka.common.metrics.Metrics : Closing reporter org.apache.kafka.common.metrics.JmxReporter
-2026-06-10T13:35:37.554+03:00 INFO 1 --- [adminclient-304] o.apache.kafka.common.metrics.Metrics : Metrics reporters closed
-2026-06-10T13:35:47.363+03:00 INFO 1 --- [nio-8080-exec-6] o.a.k.clients.admin.AdminClientConfig : AdminClientConfig values:
-auto.include.jmx.reporter = true
-bootstrap.controllers = []
-bootstrap.servers = [msk-pr01kafka.fc.uralsibbank.ru:9093, msk-pr02kafka.fc.uralsibbank.ru:9093, msk-pr03kafka.fc.uralsibbank.ru:9093]
-client.dns.lookup = use_all_dns_ips
-client.id =
-connections.max.idle.ms = 300000
-default.api.timeout.ms = 60000
-enable.metrics.push = true
-metadata.max.age.ms = 300000
+3. Ограничения и зависимости
+Спецификация с требованиями к сканам документов вступает в силу 01.06.2026. 
 
-logging.level.org.apache.kafka=WARN
+Преобразование документов должно происходить как при автоматической подаче так и при ручной.
 
-declare v number;  begin v := ibs.executor.lockopen; end;  
+В ходе разработки основное взаимодействие с Дирекцией технологии взыскания.
 
-{
-	"sourceCode": "RTL",
-	"messages": [
-		{
-			"serviceName": "Банковская подписка",
-			"serviceCode": "SUBSCRIPTION",
-			"period": "GG",
-			"name": "Тариф за подключение к услуге \\\"Банковская подписка\\\" - 12 Месяцев",
-			"dateStart": "01/01/1990",
-			"value": "2990",
-			"calc_value": 1287589082701,
-			"valute": "RUR",
-			"id_t": 1287589082695
-		}
-	]
-}
+Системы участвующие в процессе: ЕФС SIEBEL
+
+4. Контакты
+VolkovGV@uralsib.ru
+
+KhodakovMA@uralsib.ru
+
+SaponovaEV@ufa.uralsib.ru
+
+История https://task.uralsib.ru/browse/TBKOK-1798
+
+Протокол общий:
+•	По компонентам
+
+1.	Внести оглавление.
+2.	Сделать сворачивание таблиц и рисунков.
+3.	Алгоритм работы сервиса должен быть рядом с Архитектурой. 
+4.	Описание переменных+доступа – вынести отдельным разделом внизу для администраторов, ФУЗ – да, пароли не выносим.
+5.	Описание операций с базами данных – select, insert(БД -список).
+
+•	Readme
+1.	Наименование, назначение, бизнес-описание(с чем работает).
+2.	Контакты лиц, системы с кем работали.
+3.	Ссылки на Jira, проекты.
+4.	Описание требований к проекту.
+5.	Описание алгоритма работы сервиса.
+6.	Псевдографика.
+7.	Описание операций с базами данных. 
+8.	Описание таблицы доступов.
+9.	Дополнительные параметры:
+                              - Однопоточность
+                              - heap size
+                              - количество копий
+                              - ingress
+                              - health
+                              - указание на подключенную библиотеку 
+
+Открытые вопросы:
+1.	Описание Readme разработчиками – по составленному списку. 
+2.	В Алгоритме работы сервиса указывать все детали по глобальным переменным – описывать детально по каждому процессу –  в компоненте, в Readme.
+Это приведет к увеличению трудоемкости и аналитика и разработчика.
