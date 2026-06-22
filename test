@@ -45,6 +45,7 @@
 2.	В Алгоритме работы сервиса указывать все детали по глобальным переменным – описывать детально по каждому процессу –  в компоненте, в Readme.
 Это приведет к увеличению трудоемкости и аналитика и разработчика.
 
+Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
 
 https://client.cfa-dev.uralsib.ru/s3/web3tech-testbox-test/documents/faf93044-e1e7-4ed1-ab74-1f4d002a5dbf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260617T122440Z&X-Amz-SignedHeaders=host&X-Amz-Expires=86400&X-Amz-Credential=OKJDD2145O9SODQRU8AU%2F20260617%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Signature=ed8020cd90992f6baed5df3aa0045a8c7d4de7ffe277a34e865a9d1c94062dcb
 
