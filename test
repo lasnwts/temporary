@@ -1,53 +1,38 @@
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
+public class S3MetadataExample {
 
-3. Ограничения и зависимости
-Спецификация с требованиями к сканам документов вступает в силу 01.06.2026. 
+    public static void getFileMetadata(S3Client s3Client, String bucketName, String fileName) {
+        try {
+            // 1. Создаем запрос с именем файла (key) и бакетом
+            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(fileName)
+                    .build();
 
-Преобразование документов должно происходить как при автоматической подаче так и при ручной.
+            // 2. Получаем ответ
+            HeadObjectResponse response = s3Client.headObject(headObjectRequest);
 
-В ходе разработки основное взаимодействие с Дирекцией технологии взыскания.
+            // 3. Извлекаем нужные метаданные
+            System.out.println("Размер (байт): " + response.contentLength());
+            System.out.println("Тип контента: " + response.contentType());
+            System.out.println("ETag: " + response.eTag());
+            System.out.println("Дата изменения: " + response.lastModified());
+            
+            // Пользовательские метаданные (добавленные через x-amz-meta-*)
+            if (response.hasMetadata()) {
+                System.out.println("Пользовательские метаданные: " + response.metadata());
+            }
 
-Системы участвующие в процессе: 
-
-4. Контакты
-
-
-История https://task.uralsib.ru/browse/TBKOK-1798
-
-Протокол общий:
-•	По компонентам
-
-1.	Внести оглавление.
-2.	Сделать сворачивание таблиц и рисунков.
-3.	Алгоритм работы сервиса должен быть рядом с Архитектурой. 
-4.	Описание переменных+доступа – вынести отдельным разделом внизу для администраторов, ФУЗ – да, пароли не выносим.
-5.	Описание операций с базами данных – select, insert(БД -список).
-
-•	Readme
-1.	Наименование, назначение, бизнес-описание(с чем работает).
-2.	Контакты лиц, системы с кем работали.
-3.	Ссылки на Jira, проекты.
-4.	Описание требований к проекту.
-5.	Описание алгоритма работы сервиса.
-6.	Псевдографика.
-7.	Описание операций с базами данных. 
-8.	Описание таблицы доступов.
-9.	Дополнительные параметры:
-                              - Однопоточность
-                              - heap size
-                              - количество копий
-                              - ingress
-                              - health
-                              - указание на подключенную библиотеку 
-
-Открытые вопросы:
-1.	Описание Readme разработчиками – по составленному списку. 
-2.	В Алгоритме работы сервиса указывать все детали по глобальным переменным – описывать детально по каждому процессу –  в компоненте, в Readme.
-Это приведет к увеличению трудоемкости и аналитика и разработчика.
-
-Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Bean Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
-
-https://client.cfa-dev.uralsib.ru/s3/web3tech-testbox-test/documents/faf93044-e1e7-4ed1-ab74-1f4d002a5dbf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20260617T122440Z&X-Amz-SignedHeaders=host&X-Amz-Expires=86400&X-Amz-Credential=OKJDD2145O9SODQRU8AU%2F20260617%2Fru-central1%2Fs3%2Faws4_request&X-Amz-Signature=ed8020cd90992f6baed5df3aa0045a8c7d4de7ffe277a34e865a9d1c94062dcb
-
-
-
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                System.err.println("Файл не найден: " + fileName);
+            } else {
+                System.err.println("Ошибка S3: " + e.awsErrorDetails().errorMessage());
+            }
+        }
+    }
+}
