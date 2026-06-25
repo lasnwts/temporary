@@ -3,3 +3,6 @@
 
 software.amazon.awssdk.services.s3.model.NoSuchBucketException: The specified bucket does not exist. (Service: S3, Status Code: 404, Request ID: 3226560689) (SDK Attempt Count: 1)
 	at software.amazon.awssdk.services.s3.model.NoSuchBucketException$BuilderImpl.build(NoSuchBucketException.java:150) ~[s3-2.35.5.jar:na]
+S3Configuration.builder()
+    .pathStyleAccessEnabled(true)
+    .build();
