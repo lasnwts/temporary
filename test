@@ -1,247 +1,31 @@
-package ru.usb.sputnik_crif_s3.service.rest;
+<settings>
 
-import com.crif.cf.wsfacade.WSFacadeException_Exception;
-import jakarta.xml.bind.JAXBException;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import ru.usb.crif.unfreeze.Data;
-import ru.usb.crif.unfreeze.ObjectFactory;
-import ru.usb.sputnik_crif_s3.config.UsbLogger;
-import ru.usb.sputnik_crif_s3.model.sputnik.Request;
-import ru.usb.sputnik_crif_s3.model.sputnik.Response;
-import ru.usb.sputnik_crif_s3.model.sputnik.mkk.DocumentLinks;
-import ru.usb.sputnik_crif_s3.service.CrifService;
-import ru.usb.sputnik_crif_s3.service.RequestValidator;
-import ru.usb.sputnik_crif_s3.service.files.LocalFileService;
-import ru.usb.sputnik_crif_s3.service.files.S3Service;
-import ru.usb.sputnik_crif_s3.service.files.XmlParser;
-import ru.usb.sputnik_crif_s3.service.files.ZipService;
+  <activeProfiles>
+    <activeProfile>intgr</activeProfile>
+  </activeProfiles>
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
+  <profiles>
+    <profile>
+      <id>intgr</id>
 
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+      <repositories>
+        <repository>
+          <id>maven-intgr</id>
+          <name>FUSE Maven Group</name>
+          <url>https://nexus.fc.uralsibbank.ru/repository/fuse/</url>
+        </repository>
+      </repositories>
 
-@RestController
-@RequiredArgsConstructor
-@Setter
-@Getter
-public class HttpReceiver {
-    final
-    S3Service s3Service;
-    final
-    RequestValidator requestValidator;
-    final
-    CrifService crifService;
-    final ZipService zipService;
-    final LocalFileService localFileService;
+    </profile>
+  </profiles>
 
-    @PostMapping(value = "/",
-            consumes = APPLICATION_JSON_VALUE,
-            produces = APPLICATION_JSON_VALUE)
-    public Response processFileUpload(@RequestBody Request request) throws IOException, WSFacadeException_Exception, JAXBException {
-        UsbLogger.info("Received : {}", request.getRequestId());
-        try {
-            Data data = new ObjectFactory().createData();
-            Data.MKKData mkkData = new Data.MKKData();
-            if (!requestValidator.isNullAndEmpty(request.getDocumentsZipArchive())) {
+  <mirrors>
+    <mirror>
+      <id>maven-central</id>
+      <name>Nexus Maven Central Mirror</name>
+      <url>https://nexus.fc.uralsibbank.ru/repository/maven-central/</url>
+      <mirrorOf>central</mirrorOf>
+    </mirror>
+  </mirrors>
 
-                String zipName = request.getRequestId() + ".zip";
-                zipService.toZipFile(request.getDocumentsZipArchive(), zipName);
-                zipService.unzip(Path.of("zip", zipName), request.getRequestId());
-                File dir = new File(Path.of("zip", request.getRequestId()).toUri());
-                File[] files = dir.listFiles();
-
-                if (files != null) {
-                    for (File file : files) {
-                        s3Service.processFileUpload(request.getRequestId(), file.getName());
-                        if (DocumentLinks.IndividualConditionsMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
-                            mkkData.setIndividualConditionsMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
-                        }
-                        if (DocumentLinks.PaymentGraphMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
-                            mkkData.setPaymentGraphMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
-                        }
-                        if (DocumentLinks.LetterMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
-                            mkkData.setLetterMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
-                        }
-                        if (DocumentLinks.LetterForBankMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
-                            mkkData.setLetterForBankMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
-                        }
-                        if (DocumentLinks.AppPersonalLoanMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
-                            mkkData.setAppPersonalLoanMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
-                        }
-                        if (DocumentLinks.AppFormOpenCreditMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
-                            mkkData.setAppFormOpenCreditMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
-                        }
-                        if (DocumentLinks.InsuranceMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
-                            mkkData.setInsuranceMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
-                        }
-                        
-                        if (DocumentLinks.ConsentPersonalMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
-                            mkkData.setConsentPersonalMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
-                        }
-                        if (DocumentLinks.ConsentASPMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
-                            mkkData.setConsentASPMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
-                        }
-                    }
-                }
-
-//                mkkData.setIndividualConditionsMKK(request.getRequestId().concat(DocumentLinks.IndividualConditionsMKK.getFileName()));
-//                mkkData.setPaymentGraphMKK(request.getRequestId().concat(DocumentLinks.PaymentGraphMKK.getFileName()));
-//                mkkData.setLetterMKK(request.getRequestId().concat(DocumentLinks.LetterMKK.getFileName()));
-//                mkkData.setLetterForBankMKK(request.getRequestId().concat(DocumentLinks.LetterForBankMKK.getFileName()));
-//                mkkData.setAppPersonalLoanMKK(request.getRequestId().concat(DocumentLinks.AppPersonalLoanMKK.getFileName()));
-//                mkkData.setAppFormOpenCreditMKK(request.getRequestId().concat(DocumentLinks.AppFormOpenCreditMKK.getFileName()));
-//                mkkData.setInsuranceMKK(request.getRequestId().concat(DocumentLinks.InsuranceMKK.getFileName()));
-                mkkData.setConsentPersonalMKK(request.getRequestId().concat(DocumentLinks.ConsentPersonalMKK.getFileName()));
-                mkkData.setConsentASPMKK(request.getRequestId().concat(DocumentLinks.ConsentASPMKK.getFileName()));
-
-            } else if (requestValidator.isNullAndEmpty(request.getPhase())) {
-
-                Response response = new Response();
-                response.setRequestId(request.getRequestId());
-                response.setMessage("false");
-                response.setErrorMessage("false");
-                localFileService.deleteDir(request.getRequestId());
-
-                return response;
-
-            }
-
-            mkkData.setPhase(request.getPhase());
-            if (request.getCreditLimit() != null) {
-                mkkData.setCreditLimit(String.valueOf(request.getCreditLimit()));
-            }
-            mkkData.setAccountNumber(request.getAccountNumber());
-            mkkData.setFlagSignDBO(request.getFlagSignDbo());
-            if(request.getInterestRate() != null ) {
-                mkkData.setInterestRate(String.valueOf(request.getInterestRate()));
-
-            }
-            mkkData.setRequestId(request.getRequestId());
-            if(request.getPskSum() != null) {
-                mkkData.setPskSum(String.valueOf(request.getPskSum()));
-            }
-            if(request.getLoanTerm() != null) {
-                mkkData.setLoanTerm(String.valueOf(request.getLoanTerm()));
-
-            }
-            if(request.getPskPercent() != null) {
-                mkkData.setPskPercent(String.valueOf(request.getPskPercent()));
-            }
-            if (request.getInsurancePremium() != null) {
-                mkkData.setInsurancePremium(String.valueOf(request.getInsurancePremium()));
-            }
-
-            data.setMKKData(mkkData);
-            String xml = XmlParser.toXml(data);
-            //ИЗМЕНЕНИЯ по CDATA. @LyapustinAS 30.06.2026
-            // убрать XML declaration (иногда мешает)
-            xml = xml.replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
-            String wrapped = "<![CDATA[" + xml.trim() + "]]>";
-            crifService.processRequest(request, wrapped);
-
-            return okResponse(request);
-        } catch (
-                Exception e) {
-            Response response = new Response();
-            response.setRequestId(request.getRequestId());
-            response.setMessage("false");
-            response.setErrorMessage(e.getMessage());
-            localFileService.deleteDir(request.getRequestId());
-
-
-            return response;
-        }
-
-    }
-
-    private Response okResponse(Request request) throws IOException {
-        Response response = new Response();
-        response.setRequestId(request.getRequestId());
-        response.setMessage("success");
-        response.setErrorMessage("");
-        localFileService.deleteDir(request.getRequestId());
-
-        return response;
-    }
-}
-
-
-
-
-
-------------------------
-package ru.usb.sputnik_crif_s3.service.files;
-
-import com.amazonaws.HttpMethod;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Service;
-import ru.usb.sputnik_crif_s3.config.UsbLogger;
-
-import java.io.File;
-import java.net.URL;
-import java.util.Date;
-
-@Service
-@Setter
-@RequiredArgsConstructor
-@ConfigurationProperties(prefix = "s3")
-public class S3Service {
-    String url;
-    String accessKey;
-    String secretKey;
-    String bucketName;
-    final AmazonS3 s3Client;
-
-    public boolean processFileUpload(String requestId, String s3Key) {
-        try {
-            File file = new File("zip/" + requestId + "/" + s3Key);
-            if (!file.exists() || file.isDirectory()) {
-                UsbLogger.info("Файл не найден или является директорией: {}", file.getAbsoluteFile().toString());
-                return false;
-            }
-
-            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, requestId + "/" + s3Key, file);
-
-            s3Client.putObject(putObjectRequest);
-            UsbLogger.info("Файл загружен: {} -> s3://{}/{}", file.getAbsoluteFile().toString(),
-                    bucketName, requestId + "/" + s3Key);
-
-            return true;
-        } catch (Exception e) {
-            UsbLogger.error("Ошибка загрузки: {}", e.getMessage());
-            return false;
-        }
-
-    }
-
-    /**
-     * LyapustinAS 30.06.2026
-     * Подготовка PreSigned URL
-     * для получения файла из S3
-     *
-     * @param key - ключ (путь) к файлу в бакете
-     * @return - URL для доступа к файлу
-     */
-    public String generatePresignedUrl(String key) {
-        Date expiration = new Date(System.currentTimeMillis() + 3600 * 72); //72 часа
-        GeneratePresignedUrlRequest request =
-                new GeneratePresignedUrlRequest(bucketName, key)
-                        .withMethod(HttpMethod.GET)
-                        .withExpiration(expiration);
-        URL url = s3Client.generatePresignedUrl(request);
-        UsbLogger.info("Подготовлена PresignURL ссылка для файла: {}", url);
-        return url.toString();
-    }
-}
+</settings>
