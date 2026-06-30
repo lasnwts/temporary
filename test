@@ -1,8 +1,247 @@
-Ответ от МКК через новый сервис интеграции CRIF ожидает, находясь на одной из активностей - WA_60_50_WaitAnswerByMKK / WA_60_80_WaitResponseSravniRuOrMKK / WA_60_160_AnswerByMKKIssue
-Сообщение, которое МКК отправляет в интеграцию может содержать разный набор параметров, например в сообщении могут параметры заявки и архив с документами, а может быть просто урезанный набор параметров. Прикладываю FSD с описанием – п.2.1.3.
+package ru.usb.sputnik_crif_s3.service.rest;
 
-1.	Надо передавать хост S3. Напишите куда, в каком сообщении должен быть хост. Что это за хост – S3 или другой? – Крифу нужны ссылки на документы в S3. Вкратце: интеграция получает от МКК документы и параметры займа, сохраняет документы в хранилище S3 и получает на них ссылки, передаёт в CRIF эти ссылки на документы и параметры займа. Эти ссылки мы хотим получать в структуре DocumentLinks внутри MKKData. Xsd-схему MKKData приложила, просьба применить её.  
-2.	Надо обернуть XML в строке определенным образом. Пришлите пример как должен быть обернут XML. И откуда мы получаем данный XML. – интеграция получает JSON от МКК, затем вызывает SOAP методы Крифа (описаны в FSD, там же есть ссылка на WSDL.) и записывает XML в датадок MKKData. При вызове метода ProcessUnfreeze весь блок documentInputXML должен должен быть завернут в <![CDATA[]]>
-Вобще данный сервис интеграции уже успешно вызывает метод ProcessUnfreeze, когда CRIF находится на активности WA_60_50_WaitAnswerByMKK (это первая разморозка Крифа новым сервисом в процессе жизни заявки), а вот почему-то следующая попытка разморозки интеграций, которая может быть в процессе жизни заявки, когда CRIF находится на WA_60_80_WaitResponseSravniRuOrMKK или на WA_60_160_AnswerByMKKIssue – не увенчается успехом. Раз интеграция смогла один раз разморозить Криф теми же методами, то может ли быть такое, что последующая разморозка теми же методами не получается? 
+import com.crif.cf.wsfacade.WSFacadeException_Exception;
+import jakarta.xml.bind.JAXBException;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import ru.usb.crif.unfreeze.Data;
+import ru.usb.crif.unfreeze.ObjectFactory;
+import ru.usb.sputnik_crif_s3.config.UsbLogger;
+import ru.usb.sputnik_crif_s3.model.sputnik.Request;
+import ru.usb.sputnik_crif_s3.model.sputnik.Response;
+import ru.usb.sputnik_crif_s3.model.sputnik.mkk.DocumentLinks;
+import ru.usb.sputnik_crif_s3.service.CrifService;
+import ru.usb.sputnik_crif_s3.service.RequestValidator;
+import ru.usb.sputnik_crif_s3.service.files.LocalFileService;
+import ru.usb.sputnik_crif_s3.service.files.S3Service;
+import ru.usb.sputnik_crif_s3.service.files.XmlParser;
+import ru.usb.sputnik_crif_s3.service.files.ZipService;
 
-Если что-то непонятно, можем созвониться и обсудить.
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+
+@RestController
+@RequiredArgsConstructor
+@Setter
+@Getter
+public class HttpReceiver {
+    final
+    S3Service s3Service;
+    final
+    RequestValidator requestValidator;
+    final
+    CrifService crifService;
+    final ZipService zipService;
+    final LocalFileService localFileService;
+
+    @PostMapping(value = "/",
+            consumes = APPLICATION_JSON_VALUE,
+            produces = APPLICATION_JSON_VALUE)
+    public Response processFileUpload(@RequestBody Request request) throws IOException, WSFacadeException_Exception, JAXBException {
+        UsbLogger.info("Received : {}", request.getRequestId());
+        try {
+            Data data = new ObjectFactory().createData();
+            Data.MKKData mkkData = new Data.MKKData();
+            if (!requestValidator.isNullAndEmpty(request.getDocumentsZipArchive())) {
+
+                String zipName = request.getRequestId() + ".zip";
+                zipService.toZipFile(request.getDocumentsZipArchive(), zipName);
+                zipService.unzip(Path.of("zip", zipName), request.getRequestId());
+                File dir = new File(Path.of("zip", request.getRequestId()).toUri());
+                File[] files = dir.listFiles();
+
+                if (files != null) {
+                    for (File file : files) {
+                        s3Service.processFileUpload(request.getRequestId(), file.getName());
+                        if (DocumentLinks.IndividualConditionsMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
+                            mkkData.setIndividualConditionsMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
+                        }
+                        if (DocumentLinks.PaymentGraphMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
+                            mkkData.setPaymentGraphMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
+                        }
+                        if (DocumentLinks.LetterMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
+                            mkkData.setLetterMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
+                        }
+                        if (DocumentLinks.LetterForBankMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
+                            mkkData.setLetterForBankMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
+                        }
+                        if (DocumentLinks.AppPersonalLoanMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
+                            mkkData.setAppPersonalLoanMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
+                        }
+                        if (DocumentLinks.AppFormOpenCreditMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
+                            mkkData.setAppFormOpenCreditMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
+                        }
+                        if (DocumentLinks.InsuranceMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
+                            mkkData.setInsuranceMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
+                        }
+                        
+                        if (DocumentLinks.ConsentPersonalMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
+                            mkkData.setConsentPersonalMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
+                        }
+                        if (DocumentLinks.ConsentASPMKK.getFileName().toLowerCase().contains(file.getName().toLowerCase())){
+                            mkkData.setConsentASPMKK(s3Service.generatePresignedUrl(request.getRequestId() + "/" + file.getName()));
+                        }
+                    }
+                }
+
+//                mkkData.setIndividualConditionsMKK(request.getRequestId().concat(DocumentLinks.IndividualConditionsMKK.getFileName()));
+//                mkkData.setPaymentGraphMKK(request.getRequestId().concat(DocumentLinks.PaymentGraphMKK.getFileName()));
+//                mkkData.setLetterMKK(request.getRequestId().concat(DocumentLinks.LetterMKK.getFileName()));
+//                mkkData.setLetterForBankMKK(request.getRequestId().concat(DocumentLinks.LetterForBankMKK.getFileName()));
+//                mkkData.setAppPersonalLoanMKK(request.getRequestId().concat(DocumentLinks.AppPersonalLoanMKK.getFileName()));
+//                mkkData.setAppFormOpenCreditMKK(request.getRequestId().concat(DocumentLinks.AppFormOpenCreditMKK.getFileName()));
+//                mkkData.setInsuranceMKK(request.getRequestId().concat(DocumentLinks.InsuranceMKK.getFileName()));
+                mkkData.setConsentPersonalMKK(request.getRequestId().concat(DocumentLinks.ConsentPersonalMKK.getFileName()));
+                mkkData.setConsentASPMKK(request.getRequestId().concat(DocumentLinks.ConsentASPMKK.getFileName()));
+
+            } else if (requestValidator.isNullAndEmpty(request.getPhase())) {
+
+                Response response = new Response();
+                response.setRequestId(request.getRequestId());
+                response.setMessage("false");
+                response.setErrorMessage("false");
+                localFileService.deleteDir(request.getRequestId());
+
+                return response;
+
+            }
+
+            mkkData.setPhase(request.getPhase());
+            if (request.getCreditLimit() != null) {
+                mkkData.setCreditLimit(String.valueOf(request.getCreditLimit()));
+            }
+            mkkData.setAccountNumber(request.getAccountNumber());
+            mkkData.setFlagSignDBO(request.getFlagSignDbo());
+            if(request.getInterestRate() != null ) {
+                mkkData.setInterestRate(String.valueOf(request.getInterestRate()));
+
+            }
+            mkkData.setRequestId(request.getRequestId());
+            if(request.getPskSum() != null) {
+                mkkData.setPskSum(String.valueOf(request.getPskSum()));
+            }
+            if(request.getLoanTerm() != null) {
+                mkkData.setLoanTerm(String.valueOf(request.getLoanTerm()));
+
+            }
+            if(request.getPskPercent() != null) {
+                mkkData.setPskPercent(String.valueOf(request.getPskPercent()));
+            }
+            if (request.getInsurancePremium() != null) {
+                mkkData.setInsurancePremium(String.valueOf(request.getInsurancePremium()));
+            }
+
+            data.setMKKData(mkkData);
+            String xml = XmlParser.toXml(data);
+            //ИЗМЕНЕНИЯ по CDATA. @LyapustinAS 30.06.2026
+            // убрать XML declaration (иногда мешает)
+            xml = xml.replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
+            String wrapped = "<![CDATA[" + xml.trim() + "]]>";
+            crifService.processRequest(request, wrapped);
+
+            return okResponse(request);
+        } catch (
+                Exception e) {
+            Response response = new Response();
+            response.setRequestId(request.getRequestId());
+            response.setMessage("false");
+            response.setErrorMessage(e.getMessage());
+            localFileService.deleteDir(request.getRequestId());
+
+
+            return response;
+        }
+
+    }
+
+    private Response okResponse(Request request) throws IOException {
+        Response response = new Response();
+        response.setRequestId(request.getRequestId());
+        response.setMessage("success");
+        response.setErrorMessage("");
+        localFileService.deleteDir(request.getRequestId());
+
+        return response;
+    }
+}
+
+
+
+
+
+------------------------
+package ru.usb.sputnik_crif_s3.service.files;
+
+import com.amazonaws.HttpMethod;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Service;
+import ru.usb.sputnik_crif_s3.config.UsbLogger;
+
+import java.io.File;
+import java.net.URL;
+import java.util.Date;
+
+@Service
+@Setter
+@RequiredArgsConstructor
+@ConfigurationProperties(prefix = "s3")
+public class S3Service {
+    String url;
+    String accessKey;
+    String secretKey;
+    String bucketName;
+    final AmazonS3 s3Client;
+
+    public boolean processFileUpload(String requestId, String s3Key) {
+        try {
+            File file = new File("zip/" + requestId + "/" + s3Key);
+            if (!file.exists() || file.isDirectory()) {
+                UsbLogger.info("Файл не найден или является директорией: {}", file.getAbsoluteFile().toString());
+                return false;
+            }
+
+            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, requestId + "/" + s3Key, file);
+
+            s3Client.putObject(putObjectRequest);
+            UsbLogger.info("Файл загружен: {} -> s3://{}/{}", file.getAbsoluteFile().toString(),
+                    bucketName, requestId + "/" + s3Key);
+
+            return true;
+        } catch (Exception e) {
+            UsbLogger.error("Ошибка загрузки: {}", e.getMessage());
+            return false;
+        }
+
+    }
+
+    /**
+     * LyapustinAS 30.06.2026
+     * Подготовка PreSigned URL
+     * для получения файла из S3
+     *
+     * @param key - ключ (путь) к файлу в бакете
+     * @return - URL для доступа к файлу
+     */
+    public String generatePresignedUrl(String key) {
+        Date expiration = new Date(System.currentTimeMillis() + 3600 * 72); //72 часа
+        GeneratePresignedUrlRequest request =
+                new GeneratePresignedUrlRequest(bucketName, key)
+                        .withMethod(HttpMethod.GET)
+                        .withExpiration(expiration);
+        URL url = s3Client.generatePresignedUrl(request);
+        UsbLogger.info("Подготовлена PresignURL ссылка для файла: {}", url);
+        return url.toString();
+    }
+}
