@@ -1,3 +1,153 @@
-[ERROR] Failed to execute goal org.apache.maven.plugins:maven-clean-plugin:3.4.0:clean (default-clean) on project sputnik-crif-s3: Execution default-clean of goal org.apache.maven.plugins:maven-clean-plugin:3.4.0:clean failed: Plugin org.apache.maven.plugins:maven-clean-plugin:3.4.0 or one of its dependencies could not be resolved:
-[ERROR] 	Could not transfer artifact org.codehaus.plexus:plexus-utils:jar:4.0.1 from/to maven-central (https://nexus.fc.uralsibbank.ru/repository/maven-central/): PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
-[ERROR] 
+<Error>
+<Code>AuthorizationQueryParametersError</Code>
+<Message>Query-string authentication version 4 requires the X-Amz-Algorithm, X-Amz-Credential, X-Amz-Signature, X-Amz-Date, X-Amz-SignedHeaders, and X-Amz-Expires parameters.</Message>
+</Error>
+https://msk-s3-test/mkk-sign-documents-test/399440/%D0%98%D0%BD%D0%B4%D0%B8%D0%B2%D0%B8%D0%B4%D1%83%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5%20%D1%83%D1%81%D0%BB%D0%BE%D0%B2%D0%B8%D1%8F%20%D0%B4%D0%BE%D0%B3%D0%BE%D0%B2%D0%BE%D1%80%D0%B0%20%D0%BF%D0%BE%D1%82%D1%80%D0%B5%D0%B1%D0%B8%D1%82%D0%B5%D0%BB%D1%8C%D1%81%D0%BA%D0%BE%D0%B3%D0%BE%20%D0%B7%D0%B0%D0%B9%D0%BC%D0%B0.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&amp;X-Amz-Date=20260702T134318Z&amp;X-Amz-SignedHeaders=host&amp;X-Amz-Expires=259&amp;X-Amz-Credential=EBB1P2163105869BTGIN%2F20260702%2FUS_EAST_1%2Fs3%2Faws4_request&amp;X-Amz-Signature=8a79aea8346b4b8e9d8e2ea64fcc1c771c0deea71897771cd98273f981f4a3d9
+
+
+=
+package ru.usb.sputnik_crif_s3.config;
+
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.SDKGlobalConfiguration;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class S3Config {
+    @Value("${s3.url}")
+    private String s3Url;
+    @Value("${s3.accessKey}")
+    private String accessKey;
+    @Value("${s3.secretKey}")
+    private String secretKey;
+    @Value("${s3.bucket-name}")
+    private String bucketName;
+
+    @Bean
+    public AmazonS3 s3client() {
+        System.setProperty(SDKGlobalConfiguration.DISABLE_CERT_CHECKING_SYSTEM_PROPERTY,"true");
+        AWSCredentials credentials = new BasicAWSCredentials(accessKey,secretKey);
+        ClientConfiguration clientConfiguration = new ClientConfiguration();
+        clientConfiguration.setSignerOverride("AWSS3V4SignerType");
+
+        return AmazonS3ClientBuilder
+                .standard()
+                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(s3Url, Regions.US_EAST_1.name()))
+                .withPathStyleAccessEnabled(true)
+                .withClientConfiguration(clientConfiguration)
+                .withCredentials(new AWSStaticCredentialsProvider(credentials))
+                .build();
+    }
+}
+
+==
+package ru.usb.sputnik_crif_s3.service.files;
+
+import com.amazonaws.HttpMethod;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Service;
+import ru.usb.sputnik_crif_s3.config.UsbLogger;
+
+import java.io.File;
+import java.net.URL;
+import java.util.Date;
+
+
+@Service
+@Setter
+@RequiredArgsConstructor
+@ConfigurationProperties(prefix = "s3")
+public class S3Service {
+    String url;
+    String accessKey;
+    String secretKey;
+    String bucketName;
+    final AmazonS3 s3Client;
+
+    public boolean processFileUpload(String requestId, String s3Key) {
+        try {
+            File file = new File("zip/" + requestId + "/" + s3Key);
+            if (!file.exists() || file.isDirectory()) {
+                UsbLogger.info("Файл не найден или является директорией: {}", file.getAbsoluteFile().toString());
+                return false;
+            }
+
+            PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, requestId + "/" + s3Key, file);
+
+            s3Client.putObject(putObjectRequest);
+            UsbLogger.info("Файл загружен: {} -> s3://{}/{}", file.getAbsoluteFile().toString(),
+                    bucketName, requestId + "/" + s3Key);
+
+            return true;
+        } catch (Exception e) {
+            UsbLogger.error("Ошибка загрузки: {}", e.getMessage());
+            return false;
+        }
+
+    }
+
+    /**
+     * LyapustinAS 30.06.2026
+     * Подготовка PreSigned URL
+     * для получения файла из S3
+     *
+     * @param key - ключ (путь) к файлу в бакете
+     * @return - URL для доступа к файлу
+     */
+    public String generatePresignedUrl(String key) {
+        Date expiration = new Date(System.currentTimeMillis() + 3600 * 72); //72 часа
+        GeneratePresignedUrlRequest request =
+                new GeneratePresignedUrlRequest(bucketName, key)
+                        .withMethod(HttpMethod.GET)
+                        .withExpiration(expiration);
+        URL url = s3Client.generatePresignedUrl(request);
+        UsbLogger.info("Подготовлена PresignURL ссылка для файла: {}", url);
+        return url.toString();
+    }
+
+}
+==
+Протокол общий:
+•	По компонентам
+
+1.	Внести оглавление.
+2.	Сделать сворачивание таблиц и рисунков.
+3.	Алгоритм работы сервиса должен быть рядом с Архитектурой. 
+4.	Описание переменных+доступа – вынести отдельным разделом внизу для администраторов, ФУЗ – да, пароли не выносим.
+5.	Описание операций с базами данных – select, insert(БД -список).
+
+•	Readme
+1.	Наименование, назначение, бизнес-описание(с чем работает).
+2.	Контакты лиц, системы с кем работали.
+3.	Ссылки на Jira, проекты.
+4.	Описание требований к проекту.
+5.	Описание алгоритма работы сервиса.
+6.	Псевдографика.
+7.	Описание операций с базами данных. 
+8.	Описание таблицы доступов.
+9.	Дополнительные параметры:
+                              - Однопоточность
+                              - heap size
+                              - количество копий
+                              - ingress
+                              - health
+                              - указание на подключенную библиотеку 
+
+Открытые вопросы:
+1.	Описание Readme разработчиками – по составленному списку. 
+2.	В Алгоритме работы сервиса указывать все детали по глобальным переменным – описывать детально по каждому процессу –  в компоненте, в Readme.
+Это приведет к увеличению трудоемкости и аналитика и разработчика.
