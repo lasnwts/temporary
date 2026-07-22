@@ -1,104 +1,194 @@
-public void copyFullObject(String sourceBucket,
-                           String targetBucket,
-                           S3ObjectMetadataDto meta) {
+"C:\Program Files\Java\jdk-17.0.2\bin\java.exe" -agentlib:jdwp=transport=dt_socket,address=127.0.0.1:49848,suspend=y,server=n "-javaagent:C:\Users\LyapustinAS\AppData\Local\JetBrains\IdeaIC2025.2\captureAgent\debugger-agent.jar=file:///C:/Users/LYAPUS~1/AppData/Local/Temp/capture15239460495078770570.props" -Dkotlinx.coroutines.debug.enable.creation.stack.trace=false -Ddebugger.agent.enable.coroutines=true -Dkotlinx.coroutines.debug.enable.flows.stack.trace=true -Dkotlinx.coroutines.debug.enable.mutable.state.flows.stack.trace=true -Dfile.encoding=UTF-8 -classpath "C:\AppServer\Project\2026\CFA\s3backuper\target\classes;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-starter\3.4.8\spring-boot-starter-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot\3.4.8\spring-boot-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\spring-context\6.2.9\spring-context-6.2.9.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-autoconfigure\3.4.8\spring-boot-autoconfigure-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-starter-logging\3.4.8\spring-boot-starter-logging-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\ch\qos\logback\logback-classic\1.5.18\logback-classic-1.5.18.jar;C:\Users\LyapustinAS\.m2\repository\ch\qos\logback\logback-core\1.5.18\logback-core-1.5.18.jar;C:\Users\LyapustinAS\.m2\repository\org\apache\logging\log4j\log4j-to-slf4j\2.24.3\log4j-to-slf4j-2.24.3.jar;C:\Users\LyapustinAS\.m2\repository\org\apache\logging\log4j\log4j-api\2.24.3\log4j-api-2.24.3.jar;C:\Users\LyapustinAS\.m2\repository\org\slf4j\jul-to-slf4j\2.0.17\jul-to-slf4j-2.0.17.jar;C:\Users\LyapustinAS\.m2\repository\jakarta\annotation\jakarta.annotation-api\2.1.1\jakarta.annotation-api-2.1.1.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\spring-core\6.2.9\spring-core-6.2.9.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\spring-jcl\6.2.9\spring-jcl-6.2.9.jar;C:\Users\LyapustinAS\.m2\repository\org\yaml\snakeyaml\2.3\snakeyaml-2.3.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-starter-web\3.4.8\spring-boot-starter-web-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-starter-json\3.4.8\spring-boot-starter-json-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.18.4\jackson-databind-2.18.4.jar;C:\Users\LyapustinAS\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.18.4\jackson-annotations-2.18.4.jar;C:\Users\LyapustinAS\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.18.4.1\jackson-core-2.18.4.1.jar;C:\Users\LyapustinAS\.m2\repository\com\fasterxml\jackson\datatype\jackson-datatype-jdk8\2.18.4\jackson-datatype-jdk8-2.18.4.jar;C:\Users\LyapustinAS\.m2\repository\com\fasterxml\jackson\datatype\jackson-datatype-jsr310\2.18.4\jackson-datatype-jsr310-2.18.4.jar;C:\Users\LyapustinAS\.m2\repository\com\fasterxml\jackson\module\jackson-module-parameter-names\2.18.4\jackson-module-parameter-names-2.18.4.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-starter-tomcat\3.4.8\spring-boot-starter-tomcat-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\apache\tomcat\embed\tomcat-embed-core\10.1.43\tomcat-embed-core-10.1.43.jar;C:\Users\LyapustinAS\.m2\repository\org\apache\tomcat\embed\tomcat-embed-websocket\10.1.43\tomcat-embed-websocket-10.1.43.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\spring-web\6.2.9\spring-web-6.2.9.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\spring-beans\6.2.9\spring-beans-6.2.9.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\spring-webmvc\6.2.9\spring-webmvc-6.2.9.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\spring-expression\6.2.9\spring-expression-6.2.9.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-starter-security\3.4.8\spring-boot-starter-security-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\spring-aop\6.2.9\spring-aop-6.2.9.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\security\spring-security-config\6.4.8\spring-security-config-6.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\security\spring-security-core\6.4.8\spring-security-core-6.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\security\spring-security-crypto\6.4.8\spring-security-crypto-6.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\security\spring-security-web\6.4.8\spring-security-web-6.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-starter-actuator\3.4.8\spring-boot-starter-actuator-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-actuator-autoconfigure\3.4.8\spring-boot-actuator-autoconfigure-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-actuator\3.4.8\spring-boot-actuator-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\io\micrometer\micrometer-observation\1.14.9\micrometer-observation-1.14.9.jar;C:\Users\LyapustinAS\.m2\repository\io\micrometer\micrometer-commons\1.14.9\micrometer-commons-1.14.9.jar;C:\Users\LyapustinAS\.m2\repository\io\micrometer\micrometer-jakarta9\1.14.9\micrometer-jakarta9-1.14.9.jar;C:\Users\LyapustinAS\.m2\repository\io\micrometer\micrometer-core\1.14.9\micrometer-core-1.14.9.jar;C:\Users\LyapustinAS\.m2\repository\org\hdrhistogram\HdrHistogram\2.2.2\HdrHistogram-2.2.2.jar;C:\Users\LyapustinAS\.m2\repository\org\latencyutils\LatencyUtils\2.0.3\LatencyUtils-2.0.3.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-starter-mail\3.4.8\spring-boot-starter-mail-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\spring-context-support\6.2.9\spring-context-support-6.2.9.jar;C:\Users\LyapustinAS\.m2\repository\org\eclipse\angus\jakarta.mail\2.0.3\jakarta.mail-2.0.3.jar;C:\Users\LyapustinAS\.m2\repository\jakarta\activation\jakarta.activation-api\2.1.3\jakarta.activation-api-2.1.3.jar;C:\Users\LyapustinAS\.m2\repository\org\eclipse\angus\angus-activation\2.0.2\angus-activation-2.0.2.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\s3\2.35.5\s3-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\aws-xml-protocol\2.35.5\aws-xml-protocol-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\aws-query-protocol\2.35.5\aws-query-protocol-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\protocol-core\2.35.5\protocol-core-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\arns\2.35.5\arns-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\profiles\2.35.5\profiles-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\crt-core\2.35.5\crt-core-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\http-auth\2.35.5\http-auth-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\identity-spi\2.35.5\identity-spi-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\http-auth-spi\2.35.5\http-auth-spi-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\org\reactivestreams\reactive-streams\1.0.4\reactive-streams-1.0.4.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\http-auth-aws\2.35.5\http-auth-aws-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\checksums\2.35.5\checksums-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\checksums-spi\2.35.5\checksums-spi-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\retries-spi\2.35.5\retries-spi-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\sdk-core\2.35.5\sdk-core-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\retries\2.35.5\retries-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\org\slf4j\slf4j-api\2.0.17\slf4j-api-2.0.17.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\auth\2.35.5\auth-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\http-auth-aws-eventstream\2.35.5\http-auth-aws-eventstream-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\eventstream\eventstream\1.0.1\eventstream-1.0.1.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\http-client-spi\2.35.5\http-client-spi-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\regions\2.35.5\regions-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\annotations\2.35.5\annotations-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\utils\2.35.5\utils-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\aws-core\2.35.5\aws-core-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\utils-lite\2.35.5\utils-lite-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\metrics-spi\2.35.5\metrics-spi-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\json-utils\2.35.5\json-utils-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\third-party-jackson-core\2.35.5\third-party-jackson-core-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\endpoints-spi\2.35.5\endpoints-spi-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\apache-client\2.35.5\apache-client-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\org\apache\httpcomponents\httpclient\4.5.13\httpclient-4.5.13.jar;C:\Users\LyapustinAS\.m2\repository\commons-logging\commons-logging\1.2\commons-logging-1.2.jar;C:\Users\LyapustinAS\.m2\repository\org\apache\httpcomponents\httpcore\4.4.16\httpcore-4.4.16.jar;C:\Users\LyapustinAS\.m2\repository\commons-codec\commons-codec\1.17.2\commons-codec-1.17.2.jar;C:\Users\LyapustinAS\.m2\repository\software\amazon\awssdk\netty-nio-client\2.35.5\netty-nio-client-2.35.5.jar;C:\Users\LyapustinAS\.m2\repository\io\netty\netty-codec-http\4.1.123.Final\netty-codec-http-4.1.123.Final.jar;C:\Users\LyapustinAS\.m2\repository\io\netty\netty-codec-http2\4.1.123.Final\netty-codec-http2-4.1.123.Final.jar;C:\Users\LyapustinAS\.m2\repository\io\netty\netty-codec\4.1.123.Final\netty-codec-4.1.123.Final.jar;C:\Users\LyapustinAS\.m2\repository\io\netty\netty-transport\4.1.123.Final\netty-transport-4.1.123.Final.jar;C:\Users\LyapustinAS\.m2\repository\io\netty\netty-common\4.1.123.Final\netty-common-4.1.123.Final.jar;C:\Users\LyapustinAS\.m2\repository\io\netty\netty-buffer\4.1.123.Final\netty-buffer-4.1.123.Final.jar;C:\Users\LyapustinAS\.m2\repository\io\netty\netty-handler\4.1.123.Final\netty-handler-4.1.123.Final.jar;C:\Users\LyapustinAS\.m2\repository\io\netty\netty-transport-native-unix-common\4.1.123.Final\netty-transport-native-unix-common-4.1.123.Final.jar;C:\Users\LyapustinAS\.m2\repository\io\netty\netty-transport-classes-epoll\4.1.123.Final\netty-transport-classes-epoll-4.1.123.Final.jar;C:\Users\LyapustinAS\.m2\repository\io\netty\netty-resolver\4.1.123.Final\netty-resolver-4.1.123.Final.jar;C:\Users\LyapustinAS\.m2\repository\org\springdoc\springdoc-openapi-starter-webmvc-ui\2.6.0\springdoc-openapi-starter-webmvc-ui-2.6.0.jar;C:\Users\LyapustinAS\.m2\repository\org\springdoc\springdoc-openapi-starter-webmvc-api\2.6.0\springdoc-openapi-starter-webmvc-api-2.6.0.jar;C:\Users\LyapustinAS\.m2\repository\org\springdoc\springdoc-openapi-starter-common\2.6.0\springdoc-openapi-starter-common-2.6.0.jar;C:\Users\LyapustinAS\.m2\repository\io\swagger\core\v3\swagger-core-jakarta\2.2.22\swagger-core-jakarta-2.2.22.jar;C:\Users\LyapustinAS\.m2\repository\org\apache\commons\commons-lang3\3.17.0\commons-lang3-3.17.0.jar;C:\Users\LyapustinAS\.m2\repository\io\swagger\core\v3\swagger-annotations-jakarta\2.2.22\swagger-annotations-jakarta-2.2.22.jar;C:\Users\LyapustinAS\.m2\repository\io\swagger\core\v3\swagger-models-jakarta\2.2.22\swagger-models-jakarta-2.2.22.jar;C:\Users\LyapustinAS\.m2\repository\com\fasterxml\jackson\dataformat\jackson-dataformat-yaml\2.18.4\jackson-dataformat-yaml-2.18.4.jar;C:\Users\LyapustinAS\.m2\repository\org\webjars\swagger-ui\5.17.14\swagger-ui-5.17.14.jar;C:\Users\LyapustinAS\.m2\repository\org\projectlombok\lombok\1.18.34\lombok-1.18.34.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-starter-validation\3.4.8\spring-boot-starter-validation-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\org\apache\tomcat\embed\tomcat-embed-el\10.1.43\tomcat-embed-el-10.1.43.jar;C:\Users\LyapustinAS\.m2\repository\org\hibernate\validator\hibernate-validator\8.0.2.Final\hibernate-validator-8.0.2.Final.jar;C:\Users\LyapustinAS\.m2\repository\jakarta\validation\jakarta.validation-api\3.0.2\jakarta.validation-api-3.0.2.jar;C:\Users\LyapustinAS\.m2\repository\org\jboss\logging\jboss-logging\3.6.1.Final\jboss-logging-3.6.1.Final.jar;C:\Users\LyapustinAS\.m2\repository\com\fasterxml\classmate\1.7.0\classmate-1.7.0.jar;C:\Users\LyapustinAS\.m2\repository\org\springframework\boot\spring-boot-devtools\3.4.8\spring-boot-devtools-3.4.8.jar;C:\Users\LyapustinAS\.m2\repository\jakarta\xml\bind\jakarta.xml.bind-api\4.0.2\jakarta.xml.bind-api-4.0.2.jar;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2024.3.2.2\lib\idea_rt.jar" ru.usb.s3backuper.S3backuperApplication
+Connected to the target VM, address: '127.0.0.1:49848', transport: 'socket'
 
-    final String key = meta.getKey();
-    final int maxAttempts = 3;
-    final long retryDelayMs = 150;
+  _   _                  _         _   _                     _                                                     _
+ | | | |  _ __    __ _  | |  ___  (_) | |__      _ __ ___   (_)   ___   _ __    ___    ___    ___   _ __  __   __ (_)   ___    ___   ___
+ | | | | | '__|  / _` | | | / __| | | | '_ \    | '_ ` _ \  | |  / __| | '__|  / _ \  / __|  / _ \ | '__| \ \ / / | |  / __|  / _ \ / __|
+ | |_| | | |    | (_| | | | \__ \ | | | |_) |   | | | | | | | | | (__  | |    | (_) | \__ \ |  __/ | |     \ V /  | | | (__  |  __/ \__ \
+  \___/  |_|     \__,_| |_| |___/ |_| |_.__/    |_| |_| |_| |_|  \___| |_|     \___/  |___/  \___| |_|      \_/   |_|  \___|  \___| |___/
 
-    log.info("{}[backup] start copy: key={}, size={}KB",
-            LG.USBLOGINFO, key, meta.getSize() / 1024);
+ :: Spring Boot ::                (v3.4.8)
 
-    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-            // --- 1. HEAD (проверка существования + получение метаданных)
-            HeadObjectResponse head = s3Client.headObject(
-                    HeadObjectRequest.builder()
-                            .bucket(sourceBucket)
-                            .key(key)
-                            .build()
-            );
 
-            log.debug("HEAD OK: bucket={}, key={}, size={}",
-                    sourceBucket, key, head.contentLength());
+2026-07-22T19:24:10.019+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : Starting S3backuperApplication using Java 17.0.2 with PID 14844 (C:\AppServer\Project\2026\CFA\s3backuper\target\classes started by LyapustinAS in C:\AppServer\Project\2026\CFA\s3backuper)
+2026-07-22T19:24:10.025+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : No active profile set, falling back to 1 default profile: "default"
+2026-07-22T19:24:10.105+03:00  INFO 14844 --- [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-07-22T19:24:10.105+03:00  INFO 14844 --- [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-07-22T19:24:12.523+03:00  INFO 14844 --- [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-07-22T19:24:12.541+03:00  INFO 14844 --- [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-07-22T19:24:12.542+03:00  INFO 14844 --- [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.43]
+2026-07-22T19:24:12.614+03:00  INFO 14844 --- [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-07-22T19:24:12.614+03:00  INFO 14844 --- [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2508 ms
+2026-07-22T19:24:12.985+03:00  WARN 14844 --- [  restartedMain] s.a.awssdk.http.apache.ApacheHttpClient  : SSL Certificate verification is disabled. This is not a safe setting and should only be used for testing.
+2026-07-22T19:24:13.711+03:00  WARN 14844 --- [  restartedMain] s.a.awssdk.http.apache.ApacheHttpClient  : SSL Certificate verification is disabled. This is not a safe setting and should only be used for testing.
+2026-07-22T19:24:13.943+03:00  INFO 14844 --- [  restartedMain] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-07-22T19:24:14.037+03:00  INFO 14844 --- [  restartedMain] o.s.b.a.w.s.WelcomePageHandlerMapping    : Adding welcome page: class path resource [static/index.html]
+2026-07-22T19:24:14.324+03:00  INFO 14844 --- [  restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 3 endpoints beneath base path '/actuator'
+2026-07-22T19:24:14.765+03:00  INFO 14844 --- [  restartedMain] o.s.b.d.a.OptionalLiveReloadServer       : LiveReload server is running on port 35729
+2026-07-22T19:24:14.841+03:00  INFO 14844 --- [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2026-07-22T19:24:14.865+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : Started S3backuperApplication in 5.573 seconds (process running for 6.5)
+2026-07-22T19:24:14.925+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO:=======================================================
+2026-07-22T19:24:14.926+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO: Сервис    : s3backuper
+2026-07-22T19:24:14.926+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO: Версия    : 0.0.1  Автор: Lyapustin A.S.  Дата: 17.04.2026
+2026-07-22T19:24:14.927+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO: Описание  : Сервис резервного копирования файлов между двумя хостами S3
+2026-07-22T19:24:14.927+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO:--------------------------------------------------------
+2026-07-22T19:24:14.927+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO: Основные функции:
+2026-07-22T19:24:14.927+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO: 1. Автоматическое копирование файлов из основного хоста S3 в резервный по расписанию cron
+2026-07-22T19:24:14.927+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO: 2. Автоматическое восстановление файлов из резервного хоста в основной (отсутствующие файлы)
+2026-07-22T19:24:14.928+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO: 3. Проверка доступности хостов и бакетов перед каждым циклом копирования
+2026-07-22T19:24:14.928+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO: 4. Отправка email-уведомления при недоступности хоста или бакета
+2026-07-22T19:24:14.928+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO: 5. Web API: управление режимом копирования, просмотр списков файлов, проверка статуса хостов
+2026-07-22T19:24:14.928+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO:--------------------------------------------------------=
+2026-07-22T19:24:14.929+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO:            : 0.0.2 Изменен тестовый бакет
+2026-07-22T19:24:14.929+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO:            : 0.0.4 Изменена настройка по ошибке SDK2[STREAMING-AWS4-HMAC-SHA256-PAYLOAD or a valid sha256 value]
+2026-07-22T19:24:14.929+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO:            : 0.0.6 Добавлена функция list, которая получает полный список файлов из бакета с учётом пагинации (больше 1000 объектов)
+2026-07-22T19:24:14.929+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO:            : 0.1.6 Полностью переписан функционал копирования файлов. Включены метаданные
+2026-07-22T19:24:14.929+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO:            : 0.1.7 Переписан метод копирования объектов.
+2026-07-22T19:24:14.930+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO:            : 0.1.8 Внесены изменения в метод copyFullObject
+2026-07-22T19:24:14.930+03:00  INFO 14844 --- [  restartedMain] r.usb.s3backuper.S3backuperApplication   : USBLOGINFO:=======================================================
+ но 2026-07-22T19:41:50.786+03:00  INFO 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGINFO:[restore] backup=13740, source=13737, to restore=3
+2026-07-22T19:41:50.787+03:00  INFO 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGINFO:[restore] copying: [https://msk-s3e-backup.fc.uralsibbank.ru]/web3tech-testbox-test/documents/1f6c96cc-4e46-495e-86c1-43710317ee65 -> [https://msk-s3-test.fc.uralsibbank.ru]/web3tech-testbox-test size=25KB
+2026-07-22T19:41:50.787+03:00  INFO 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGINFO[backup] start copy: key=documents/1f6c96cc-4e46-495e-86c1-43710317ee65, size=25KB
+2026-07-22T19:41:50.951+03:00  WARN 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGWARNING[backup] key not found (attempt 1/3): key=documents/1f6c96cc-4e46-495e-86c1-43710317ee65
+2026-07-22T19:41:51.141+03:00  WARN 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGWARNING[backup] key not found (attempt 2/3): key=documents/1f6c96cc-4e46-495e-86c1-43710317ee65
+2026-07-22T19:41:51.462+03:00  WARN 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGWARNING[backup] key not found (attempt 3/3): key=documents/1f6c96cc-4e46-495e-86c1-43710317ee65
+2026-07-22T19:41:51.462+03:00 ERROR 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGERROR:[restore] failed: [https://msk-s3e-backup.fc.uralsibbank.ru]/web3tech-testbox-test/documents/1f6c96cc-4e46-495e-86c1-43710317ee65 -> [https://msk-s3-test.fc.uralsibbank.ru]/web3tech-testbox-test error=(Service: S3, Status Code: 404, Request ID: null) (SDK Attempt Count: 1) (Service: S3, Status Code: 404, Request ID: null)
 
-            // --- 2. GET
-            GetObjectRequest getReq = GetObjectRequest.builder()
-                    .bucket(sourceBucket)
-                    .key(key)
-                    .build();
+software.amazon.awssdk.services.s3.model.NoSuchKeyException: (Service: S3, Status Code: 404, Request ID: null) (SDK Attempt Count: 1) (Service: S3, Status Code: 404, Request ID: null)
+	at software.amazon.awssdk.services.s3.model.NoSuchKeyException$BuilderImpl.build(NoSuchKeyException.java:150) ~[s3-2.35.5.jar:na]
+	at software.amazon.awssdk.services.s3.model.NoSuchKeyException$BuilderImpl.build(NoSuchKeyException.java:98) ~[s3-2.35.5.jar:na]
+	at software.amazon.awssdk.services.s3.internal.handlers.ExceptionTranslationInterceptor.modifyException(ExceptionTranslationInterceptor.java:65) ~[s3-2.35.5.jar:na]
+	at software.amazon.awssdk.core.interceptor.ExecutionInterceptorChain.modifyException(ExecutionInterceptorChain.java:181) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.utils.ExceptionReportingUtils.runModifyException(ExceptionReportingUtils.java:54) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.utils.ExceptionReportingUtils.reportFailureToInterceptors(ExceptionReportingUtils.java:38) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.ExecutionFailureExceptionReportingStage.execute(ExecutionFailureExceptionReportingStage.java:39) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.ExecutionFailureExceptionReportingStage.execute(ExecutionFailureExceptionReportingStage.java:26) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.AmazonSyncHttpClient$RequestExecutionBuilderImpl.execute(AmazonSyncHttpClient.java:210) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.invoke(BaseSyncClientHandler.java:103) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.doExecute(BaseSyncClientHandler.java:173) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.lambda$execute$1(BaseSyncClientHandler.java:80) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.measureApiCallSuccess(BaseSyncClientHandler.java:182) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.execute(BaseSyncClientHandler.java:74) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.client.handler.SdkSyncClientHandler.execute(SdkSyncClientHandler.java:45) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.awscore.client.handler.AwsSyncClientHandler.execute(AwsSyncClientHandler.java:53) ~[aws-core-2.35.5.jar:na]
+	at software.amazon.awssdk.services.s3.DefaultS3Client.headObject(DefaultS3Client.java:7623) ~[s3-2.35.5.jar:na]
+	at ru.usb.s3backuper.service.S3BackupScheduler.copyFullObject(S3BackupScheduler.java:192) ~[classes/:na]
+	at ru.usb.s3backuper.service.S3BackupScheduler.restore(S3BackupScheduler.java:333) ~[classes/:na]
+	at ru.usb.s3backuper.service.S3BackupScheduler.backup(S3BackupScheduler.java:168) ~[classes/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:130) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$2(ScheduledMethodRunnable.java:124) ~[spring-context-6.2.9.jar:6.2.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:498) ~[micrometer-observation-1.14.9.jar:1.14.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:124) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:85) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.concurrent.ReschedulingRunnable.run(ReschedulingRunnable.java:96) ~[spring-context-6.2.9.jar:6.2.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.run$$$capture(FutureTask.java:264) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:833) ~[na:na]
 
-            try (ResponseInputStream<GetObjectResponse> is =
-                         s3Client.getObject(getReq)) {
+2026-07-22T19:41:51.472+03:00  INFO 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGINFO:[restore] copying: [https://msk-s3e-backup.fc.uralsibbank.ru]/web3tech-testbox-test/documents/f8965120-526b-4d8a-bc49-5c1ff0383dc8 -> [https://msk-s3-test.fc.uralsibbank.ru]/web3tech-testbox-test size=25KB
+2026-07-22T19:41:51.472+03:00  INFO 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGINFO[backup] start copy: key=documents/f8965120-526b-4d8a-bc49-5c1ff0383dc8, size=25KB
+2026-07-22T19:41:51.486+03:00  WARN 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGWARNING[backup] key not found (attempt 1/3): key=documents/f8965120-526b-4d8a-bc49-5c1ff0383dc8
+2026-07-22T19:41:51.654+03:00  WARN 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGWARNING[backup] key not found (attempt 2/3): key=documents/f8965120-526b-4d8a-bc49-5c1ff0383dc8
+2026-07-22T19:41:51.972+03:00  WARN 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGWARNING[backup] key not found (attempt 3/3): key=documents/f8965120-526b-4d8a-bc49-5c1ff0383dc8
+2026-07-22T19:41:51.973+03:00 ERROR 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGERROR:[restore] failed: [https://msk-s3e-backup.fc.uralsibbank.ru]/web3tech-testbox-test/documents/f8965120-526b-4d8a-bc49-5c1ff0383dc8 -> [https://msk-s3-test.fc.uralsibbank.ru]/web3tech-testbox-test error=(Service: S3, Status Code: 404, Request ID: null) (SDK Attempt Count: 1) (Service: S3, Status Code: 404, Request ID: null)
 
-                // --- 3. PUT (копирование)
-                PutObjectRequest.Builder putBuilder = PutObjectRequest.builder()
-                        .bucket(targetBucket)
-                        .key(key)
-                        .contentLength(head.contentLength());
+software.amazon.awssdk.services.s3.model.NoSuchKeyException: (Service: S3, Status Code: 404, Request ID: null) (SDK Attempt Count: 1) (Service: S3, Status Code: 404, Request ID: null)
+	at software.amazon.awssdk.services.s3.model.NoSuchKeyException$BuilderImpl.build(NoSuchKeyException.java:150) ~[s3-2.35.5.jar:na]
+	at software.amazon.awssdk.services.s3.model.NoSuchKeyException$BuilderImpl.build(NoSuchKeyException.java:98) ~[s3-2.35.5.jar:na]
+	at software.amazon.awssdk.services.s3.internal.handlers.ExceptionTranslationInterceptor.modifyException(ExceptionTranslationInterceptor.java:65) ~[s3-2.35.5.jar:na]
+	at software.amazon.awssdk.core.interceptor.ExecutionInterceptorChain.modifyException(ExecutionInterceptorChain.java:181) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.utils.ExceptionReportingUtils.runModifyException(ExceptionReportingUtils.java:54) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.utils.ExceptionReportingUtils.reportFailureToInterceptors(ExceptionReportingUtils.java:38) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.ExecutionFailureExceptionReportingStage.execute(ExecutionFailureExceptionReportingStage.java:39) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.ExecutionFailureExceptionReportingStage.execute(ExecutionFailureExceptionReportingStage.java:26) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.AmazonSyncHttpClient$RequestExecutionBuilderImpl.execute(AmazonSyncHttpClient.java:210) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.invoke(BaseSyncClientHandler.java:103) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.doExecute(BaseSyncClientHandler.java:173) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.lambda$execute$1(BaseSyncClientHandler.java:80) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.measureApiCallSuccess(BaseSyncClientHandler.java:182) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.execute(BaseSyncClientHandler.java:74) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.client.handler.SdkSyncClientHandler.execute(SdkSyncClientHandler.java:45) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.awscore.client.handler.AwsSyncClientHandler.execute(AwsSyncClientHandler.java:53) ~[aws-core-2.35.5.jar:na]
+	at software.amazon.awssdk.services.s3.DefaultS3Client.headObject(DefaultS3Client.java:7623) ~[s3-2.35.5.jar:na]
+	at ru.usb.s3backuper.service.S3BackupScheduler.copyFullObject(S3BackupScheduler.java:192) ~[classes/:na]
+	at ru.usb.s3backuper.service.S3BackupScheduler.restore(S3BackupScheduler.java:333) ~[classes/:na]
+	at ru.usb.s3backuper.service.S3BackupScheduler.backup(S3BackupScheduler.java:168) ~[classes/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:130) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$2(ScheduledMethodRunnable.java:124) ~[spring-context-6.2.9.jar:6.2.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:498) ~[micrometer-observation-1.14.9.jar:1.14.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:124) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:85) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.concurrent.ReschedulingRunnable.run(ReschedulingRunnable.java:96) ~[spring-context-6.2.9.jar:6.2.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.run$$$capture(FutureTask.java:264) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:833) ~[na:na]
 
-                // --- перенос метаданных
-                if (head.contentType() != null)
-                    putBuilder.contentType(head.contentType());
+2026-07-22T19:41:51.976+03:00  INFO 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGINFO:[restore] copying: [https://msk-s3e-backup.fc.uralsibbank.ru]/web3tech-testbox-test/icons/ca310629-d6fa-43c0-80f7-c64143251e0d -> [https://msk-s3-test.fc.uralsibbank.ru]/web3tech-testbox-test size=13KB
+2026-07-22T19:41:51.976+03:00  INFO 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGINFO[backup] start copy: key=icons/ca310629-d6fa-43c0-80f7-c64143251e0d, size=13KB
+2026-07-22T19:41:51.990+03:00  WARN 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGWARNING[backup] key not found (attempt 1/3): key=icons/ca310629-d6fa-43c0-80f7-c64143251e0d
+2026-07-22T19:41:52.167+03:00  WARN 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGWARNING[backup] key not found (attempt 2/3): key=icons/ca310629-d6fa-43c0-80f7-c64143251e0d
+2026-07-22T19:41:52.489+03:00  WARN 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGWARNING[backup] key not found (attempt 3/3): key=icons/ca310629-d6fa-43c0-80f7-c64143251e0d
+2026-07-22T19:41:52.489+03:00 ERROR 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGERROR:[restore] failed: [https://msk-s3e-backup.fc.uralsibbank.ru]/web3tech-testbox-test/icons/ca310629-d6fa-43c0-80f7-c64143251e0d -> [https://msk-s3-test.fc.uralsibbank.ru]/web3tech-testbox-test error=(Service: S3, Status Code: 404, Request ID: null) (SDK Attempt Count: 1) (Service: S3, Status Code: 404, Request ID: null)
 
-                if (head.contentDisposition() != null)
-                    putBuilder.contentDisposition(head.contentDisposition());
+software.amazon.awssdk.services.s3.model.NoSuchKeyException: (Service: S3, Status Code: 404, Request ID: null) (SDK Attempt Count: 1) (Service: S3, Status Code: 404, Request ID: null)
+	at software.amazon.awssdk.services.s3.model.NoSuchKeyException$BuilderImpl.build(NoSuchKeyException.java:150) ~[s3-2.35.5.jar:na]
+	at software.amazon.awssdk.services.s3.model.NoSuchKeyException$BuilderImpl.build(NoSuchKeyException.java:98) ~[s3-2.35.5.jar:na]
+	at software.amazon.awssdk.services.s3.internal.handlers.ExceptionTranslationInterceptor.modifyException(ExceptionTranslationInterceptor.java:65) ~[s3-2.35.5.jar:na]
+	at software.amazon.awssdk.core.interceptor.ExecutionInterceptorChain.modifyException(ExecutionInterceptorChain.java:181) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.utils.ExceptionReportingUtils.runModifyException(ExceptionReportingUtils.java:54) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.utils.ExceptionReportingUtils.reportFailureToInterceptors(ExceptionReportingUtils.java:38) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.ExecutionFailureExceptionReportingStage.execute(ExecutionFailureExceptionReportingStage.java:39) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.pipeline.stages.ExecutionFailureExceptionReportingStage.execute(ExecutionFailureExceptionReportingStage.java:26) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.http.AmazonSyncHttpClient$RequestExecutionBuilderImpl.execute(AmazonSyncHttpClient.java:210) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.invoke(BaseSyncClientHandler.java:103) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.doExecute(BaseSyncClientHandler.java:173) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.lambda$execute$1(BaseSyncClientHandler.java:80) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.measureApiCallSuccess(BaseSyncClientHandler.java:182) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.internal.handler.BaseSyncClientHandler.execute(BaseSyncClientHandler.java:74) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.core.client.handler.SdkSyncClientHandler.execute(SdkSyncClientHandler.java:45) ~[sdk-core-2.35.5.jar:na]
+	at software.amazon.awssdk.awscore.client.handler.AwsSyncClientHandler.execute(AwsSyncClientHandler.java:53) ~[aws-core-2.35.5.jar:na]
+	at software.amazon.awssdk.services.s3.DefaultS3Client.headObject(DefaultS3Client.java:7623) ~[s3-2.35.5.jar:na]
+	at ru.usb.s3backuper.service.S3BackupScheduler.copyFullObject(S3BackupScheduler.java:192) ~[classes/:na]
+	at ru.usb.s3backuper.service.S3BackupScheduler.restore(S3BackupScheduler.java:333) ~[classes/:na]
+	at ru.usb.s3backuper.service.S3BackupScheduler.backup(S3BackupScheduler.java:168) ~[classes/:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[na:na]
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[na:na]
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568) ~[na:na]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:130) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$2(ScheduledMethodRunnable.java:124) ~[spring-context-6.2.9.jar:6.2.9]
+	at io.micrometer.observation.Observation.observe(Observation.java:498) ~[micrometer-observation-1.14.9.jar:1.14.9]
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:124) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:85) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54) ~[spring-context-6.2.9.jar:6.2.9]
+	at org.springframework.scheduling.concurrent.ReschedulingRunnable.run(ReschedulingRunnable.java:96) ~[spring-context-6.2.9.jar:6.2.9]
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.run$$$capture(FutureTask.java:264) ~[na:na]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java) ~[na:na]
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:304) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:833) ~[na:na]
 
-                if (head.cacheControl() != null)
-                    putBuilder.cacheControl(head.cacheControl());
-
-                if (head.contentEncoding() != null)
-                    putBuilder.contentEncoding(head.contentEncoding());
-
-                if (head.metadata() != null && !head.metadata().isEmpty())
-                    putBuilder.metadata(head.metadata());
-
-                s3BackupClient.putObject(
-                        putBuilder.build(),
-                        RequestBody.fromInputStream(is, head.contentLength())
-                );
-            }
-
-            // --- SUCCESS
-            log.info("{}[backup] copied OK: key={}, attempt={}",
-                    LG.USBLOGINFO, key, attempt);
-
-            return;
-
-        } catch (NoSuchKeyException e) {
-
-            log.warn("{}[backup] key not found (attempt {}/{}): key={}",
-                    LG.USBLOGWARN, attempt, maxAttempts, key);
-
-            // retry только если не последняя попытка
-            if (attempt == maxAttempts) {
-                throw e;
-            }
-
-        } catch (SdkClientException e) {
-
-            log.warn("{}[backup] network error (attempt {}/{}): key={}, error={}",
-                    LG.USBLOGWARN, attempt, maxAttempts, key, e.getMessage());
-
-            if (attempt == maxAttempts) {
-                throw e;
-            }
-
-        } catch (Exception e) {
-
-            log.error("{}[backup] unexpected error: key={}, attempt={}, error={}",
-                    LG.USBLOGERROR, key, attempt, e.getMessage(), e);
-
-            throw e; // ❗ не глотаем
-
-        }
-
-        // --- retry delay
-        try {
-            Thread.sleep(retryDelayMs * attempt); // backoff
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("Interrupted during retry", ie);
-        }
-    }
-}
+2026-07-22T19:41:52.496+03:00  INFO 14844 --- [   scheduling-1] r.u.s.service.S3BackupScheduler          : USBLOGINFO:[restore] done: total=3, success=0, failed=3
+Disconnected from the target VM, address: '127.0.0.1:49848', transport: 'socket'
+2026-07-22T19:43:11.399+03:00  INFO 14844 --- [ionShutdownHook] o.s.b.w.e.tomcat.GracefulShutdown        : Commencing graceful shutdown. Waiting for active requests to complete
+2026-07-22T19:43:11.446+03:00  INFO 14844 --- [tomcat-shutdown] o.s.b.w.e.tomcat.GracefulShutdown        : Graceful shutdown complete
