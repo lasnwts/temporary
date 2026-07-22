@@ -1,1 +1,104 @@
-дрдг
+public void copyFullObject(String sourceBucket,
+                           String targetBucket,
+                           S3ObjectMetadataDto meta) {
+
+    final String key = meta.getKey();
+    final int maxAttempts = 3;
+    final long retryDelayMs = 150;
+
+    log.info("{}[backup] start copy: key={}, size={}KB",
+            LG.USBLOGINFO, key, meta.getSize() / 1024);
+
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            // --- 1. HEAD (проверка существования + получение метаданных)
+            HeadObjectResponse head = s3Client.headObject(
+                    HeadObjectRequest.builder()
+                            .bucket(sourceBucket)
+                            .key(key)
+                            .build()
+            );
+
+            log.debug("HEAD OK: bucket={}, key={}, size={}",
+                    sourceBucket, key, head.contentLength());
+
+            // --- 2. GET
+            GetObjectRequest getReq = GetObjectRequest.builder()
+                    .bucket(sourceBucket)
+                    .key(key)
+                    .build();
+
+            try (ResponseInputStream<GetObjectResponse> is =
+                         s3Client.getObject(getReq)) {
+
+                // --- 3. PUT (копирование)
+                PutObjectRequest.Builder putBuilder = PutObjectRequest.builder()
+                        .bucket(targetBucket)
+                        .key(key)
+                        .contentLength(head.contentLength());
+
+                // --- перенос метаданных
+                if (head.contentType() != null)
+                    putBuilder.contentType(head.contentType());
+
+                if (head.contentDisposition() != null)
+                    putBuilder.contentDisposition(head.contentDisposition());
+
+                if (head.cacheControl() != null)
+                    putBuilder.cacheControl(head.cacheControl());
+
+                if (head.contentEncoding() != null)
+                    putBuilder.contentEncoding(head.contentEncoding());
+
+                if (head.metadata() != null && !head.metadata().isEmpty())
+                    putBuilder.metadata(head.metadata());
+
+                s3BackupClient.putObject(
+                        putBuilder.build(),
+                        RequestBody.fromInputStream(is, head.contentLength())
+                );
+            }
+
+            // --- SUCCESS
+            log.info("{}[backup] copied OK: key={}, attempt={}",
+                    LG.USBLOGINFO, key, attempt);
+
+            return;
+
+        } catch (NoSuchKeyException e) {
+
+            log.warn("{}[backup] key not found (attempt {}/{}): key={}",
+                    LG.USBLOGWARN, attempt, maxAttempts, key);
+
+            // retry только если не последняя попытка
+            if (attempt == maxAttempts) {
+                throw e;
+            }
+
+        } catch (SdkClientException e) {
+
+            log.warn("{}[backup] network error (attempt {}/{}): key={}, error={}",
+                    LG.USBLOGWARN, attempt, maxAttempts, key, e.getMessage());
+
+            if (attempt == maxAttempts) {
+                throw e;
+            }
+
+        } catch (Exception e) {
+
+            log.error("{}[backup] unexpected error: key={}, attempt={}, error={}",
+                    LG.USBLOGERROR, key, attempt, e.getMessage(), e);
+
+            throw e; // ❗ не глотаем
+
+        }
+
+        // --- retry delay
+        try {
+            Thread.sleep(retryDelayMs * attempt); // backoff
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted during retry", ie);
+        }
+    }
+}
