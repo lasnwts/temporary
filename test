@@ -1,12 +1,254 @@
-Централизованный интеграционный сервис (на базе Spring Boot) является предпочтительным решением для реализации интеграционной логики в случаях, когда требуется обеспечить единообразие интеграционных контрактов, снижение операционной сложности и контроль качества взаимодействия между системами.
-В отличие от распределённой реализации интеграции в рамках продуктовых доменов, централизованный подход позволяет:
-•	исключить дублирование интеграционной логики и адаптеров к внешним системам;
-•	обеспечить единое управление контрактами и версиями API;
-•	упростить мониторинг, трассировку и диагностику интеграционных сценариев;
-•	снизить совокупную стоимость владения за счёт уменьшения количества сервисов и инфраструктурных компонентов;
-•	ускорить внедрение изменений в интеграционные процессы без необходимости координации между несколькими командами;
-•	повысить уровень безопасности за счёт централизованного контроля точек интеграции.
-Интеграционная логика по своей природе является техническим (платформенным) слоем и не должна дублироваться в продуктовых доменах, так как это приводит к расхождению реализации, усложнению сопровождения и снижению управляемости архитектуры.
-Таким образом, выбор в пользу распределённой интеграции должен быть обоснован особыми требованиями (например, жёсткая изоляция доменов или специфические требования к latency), в то время как централизованный интеграционный сервис должен рассматриваться как базовый и предпочтительный вариант.
+/**
+ * HEAD /** — получение метаданных объекта (stat) без скачивания содержимого.
+ * Используется MinIO клиентом для statObjects.
+ * Требует валидный заголовок Authorization: AWS4-HMAC-SHA256.
+ * Системные пути пропускаются без обработки.
+ */
+@Operation(summary = "Получение метаданных объекта (HEAD)")
+@HeadMapping("/**")
+public ResponseEntity<?> head(HttpServletRequest request) {
+    String path = request.getRequestURI();
+    if (isBypass(path)) return ResponseEntity.notFound().build();
+    logRequest(request);
+    
+    // Проверяем, не presigned ли это запрос
+    if (request.getParameter("X-Amz-Signature") != null) {
+        return handlePresignedHead(request, path);
+    }
+    
+    ResponseEntity<?> authError = validateAwsAuth(request, path);
+    if (authError != null) return authError;
+    
+    return sendHeadWithFailover(request, path);
+}
 
+/**
+ * Обработка HEAD запроса с Presigned URL.
+ */
+private ResponseEntity<?> handlePresignedHead(HttpServletRequest request, String path) {
+    // Аналогично handlePresigned, но для HEAD метода
+    String rawQuery = request.getQueryString();
+    log.info("{} HEAD presigned path={}", LG.USBLOGINFO, path);
+    
+    try {
+        Map<String, String> params = parsePresignQuery(rawQuery);
+        
+        // Валидация presigned параметров (как в handlePresigned)
+        String[] required = {"X-Amz-Algorithm", "X-Amz-Date", "X-Amz-SignedHeaders",
+                             "X-Amz-Credential", "X-Amz-Expires", "X-Amz-Signature"};
+        for (String p : required) {
+            if (!params.containsKey(p)) {
+                log.warn("{} Presigned missing param={} path={}", LG.USBLOGWARNING, p, path);
+                return buildS3AuthError("InvalidArgument", "Missing parameter: " + p, path);
+            }
+        }
+        
+        String amzDate = params.get("X-Amz-Date");
+        long expiresSeconds = Long.parseLong(params.get("X-Amz-Expires"));
+        LocalDateTime signedAt = LocalDateTime.parse(amzDate,
+                DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'"));
+        if (LocalDateTime.now(ZoneOffset.UTC).isAfter(signedAt.plusSeconds(expiresSeconds))) {
+            log.warn("{} Presigned URL expired path={}", LG.USBLOGWARNING, path);
+            return buildS3AuthError("AccessDenied", "Request has expired.", path);
+        }
+        
+        String credential = URLDecoder.decode(params.get("X-Amz-Credential"), StandardCharsets.UTF_8);
+        String[] credParts = credential.split("/");
+        String accessKey = credParts[0];
+        String dateStamp = credParts[1];
+        String region = credParts[2];
+        String service = credParts[3];
+        String signedHeaders = params.get("X-Amz-SignedHeaders");
+        String signature = params.get("X-Amz-Signature");
+        
+        if (!accessKey.equals(props.getAccessKey())) {
+            log.warn("{} Presigned accessKey mismatch: got={} path={}", LG.USBLOGWARNING, accessKey, path);
+            return buildS3AuthError("InvalidAccessKeyId",
+                    "The Access Key Id you provided does not exist in our records.", path);
+        }
+        
+        // Проверка подписи для HEAD
+        String hostSource = props.getPresignHostSource();
+        String hostDestination = props.getPresignHostDestination();
+        if (hostSource == null) hostSource = "s3failover.intgr-t.fc.uralsibbank.ru";
+        if (hostDestination == null) hostDestination = "client.cfa-dev.uralsib.ru/s3";
+        
+        String host = hostDestination;
+        String canonicalHeaders = buildPresignCanonicalHeaders(request, signedHeaders, host);
+        String canonicalQuery = buildCanonicalQueryString(rawQuery);
+        String canonicalRequest = String.join("\n",
+                "HEAD", path, canonicalQuery, canonicalHeaders, signedHeaders, "UNSIGNED-PAYLOAD");
+        
+        String credentialScope = String.join("/", dateStamp, region, service, "aws4_request");
+        String stringToSign = String.join("\n",
+                "AWS4-HMAC-SHA256", amzDate, credentialScope, hex(sha256(canonicalRequest.getBytes(StandardCharsets.UTF_8))));
+        
+        String expectedSig = hex(hmac(getSigningKey(props.getSecretKey(), dateStamp, region, service), stringToSign));
+        
+        if (!expectedSig.equals(signature)) {
+            log.warn("{} Presigned signature MISMATCH path={}", LG.USBLOGWARNING, path);
+            return buildS3AuthError("SignatureDoesNotMatch",
+                    "The request signature we calculated does not match the signature you provided.", path);
+        }
+        
+        log.info("{} Presigned HEAD auth SUCCESS path={}", LG.USBLOGINFO, path);
+        return sendHeadWithFailoverPresigned(path, region);
+        
+    } catch (Exception e) {
+        log.error("{} Presigned HEAD validation error path={} error={}", LG.USBLOGERROR, path, e.getMessage());
+        return buildS3AuthError("SignatureDoesNotMatch",
+                "The request signature we calculated does not match the signature you provided.", path);
+    }
+}
 
+/**
+ * Отправляет HEAD запрос на primary S3 с failover на backup.
+ */
+private ResponseEntity<?> sendHeadWithFailover(HttpServletRequest request, String path) {
+    String amzDate = request.getHeader("x-amz-date");
+    String region = extractCredentialPart(request.getHeader("authorization"), 2);
+    
+    // primary
+    try {
+        HttpRequest s3Request = buildS3HeadRequest(path, amzDate, region,
+                props.getUrl(), props.getAccessKey(), props.getSecretKey());
+        log.info("{} HEAD -> primary: url={}", LG.USBLOGINFO, props.getUrl() + path);
+        HttpResponse<Void> response = httpClient.send(s3Request, HttpResponse.BodyHandlers.discarding());
+        
+        if (!FAILOVER_STATUSES.contains(response.statusCode())) {
+            log.info("{} HEAD primary OK: status={} path={}", LG.USBLOGINFO, response.statusCode(), path);
+            return buildHeadResponse(response);
+        }
+        log.warn("{} HEAD primary returned {} — switching to backup, path={}",
+                LG.USBLOGWARNING, response.statusCode(), path);
+        
+    } catch (HttpTimeoutException | ConnectException | UnknownHostException e) {
+        log.warn("{} HEAD primary unavailable ({}): {} — switching to backup, path={}",
+                LG.USBLOGWARNING, e.getClass().getSimpleName(), e.getMessage(), path);
+    } catch (Exception e) {
+        log.warn("{} HEAD primary error: {} — switching to backup, path={}",
+                LG.USBLOGWARNING, e.getMessage(), path);
+    }
+    
+    // backup
+    try {
+        HttpRequest backupRequest = buildS3HeadRequest(path, amzDate, region,
+                backupProps.getUrl(), backupProps.getAccessKey(), backupProps.getSecretKey());
+        log.info("{} HEAD -> backup: url={}", LG.USBLOGINFO, backupProps.getUrl() + path);
+        HttpResponse<Void> response = httpClient.send(backupRequest, HttpResponse.BodyHandlers.discarding());
+        log.info("{} HEAD backup response: status={} path={}", LG.USBLOGINFO, response.statusCode(), path);
+        return buildHeadResponse(response);
+        
+    } catch (Exception e) {
+        log.error("{} HEAD backup error path={} error={}", LG.USBLOGERROR, path, e.getMessage());
+        return ResponseEntity.internalServerError().body(e.getMessage());
+    }
+}
+
+/**
+ * Отправляет HEAD запрос с presigned валидацией.
+ */
+private ResponseEntity<?> sendHeadWithFailoverPresigned(String path, String region) {
+    String amzDate = java.time.ZonedDateTime.now(ZoneOffset.UTC)
+            .format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'"));
+    
+    // primary
+    try {
+        HttpRequest s3Request = buildS3HeadRequest(path, amzDate, region,
+                props.getUrl(), props.getAccessKey(), props.getSecretKey());
+        log.info("{} HEAD presigned -> primary: url={}", LG.USBLOGINFO, props.getUrl() + path);
+        HttpResponse<Void> response = httpClient.send(s3Request, HttpResponse.BodyHandlers.discarding());
+        
+        if (!FAILOVER_STATUSES.contains(response.statusCode())) {
+            log.info("{} HEAD presigned primary OK: status={} path={}", LG.USBLOGINFO, response.statusCode(), path);
+            return buildHeadResponse(response);
+        }
+        log.warn("{} HEAD presigned primary returned {} — switching to backup, path={}",
+                LG.USBLOGWARNING, response.statusCode(), path);
+        
+    } catch (HttpTimeoutException | ConnectException | UnknownHostException e) {
+        log.warn("{} HEAD presigned primary unavailable: {} — switching to backup, path={}",
+                LG.USBLOGWARNING, e.getMessage(), path);
+    } catch (Exception e) {
+        log.warn("{} HEAD presigned primary error: {} — switching to backup, path={}",
+                LG.USBLOGWARNING, e.getMessage(), path);
+    }
+    
+    // backup
+    String backupPath = path.replaceFirst(
+            "/" + props.getBucket().getBase() + "/",
+            "/" + backupProps.getBucket().getBase() + "/"
+    );
+    try {
+        HttpRequest backupRequest = buildS3HeadRequest(backupPath, amzDate, region,
+                backupProps.getUrl(), backupProps.getAccessKey(), backupProps.getSecretKey());
+        log.info("{} HEAD presigned -> backup: url={}", LG.USBLOGINFO, backupProps.getUrl() + backupPath);
+        HttpResponse<Void> response = httpClient.send(backupRequest, HttpResponse.BodyHandlers.discarding());
+        log.info("{} HEAD presigned backup response: status={} path={}", LG.USBLOGINFO, response.statusCode(), backupPath);
+        return buildHeadResponse(response);
+        
+    } catch (Exception e) {
+        log.error("{} HEAD presigned backup error path={} error={}", LG.USBLOGERROR, backupPath, e.getMessage());
+        return ResponseEntity.internalServerError().body(e.getMessage());
+    }
+}
+
+/**
+ * Строит HEAD запрос к S3.
+ */
+private HttpRequest buildS3HeadRequest(String path, String amzDate, String region,
+                                        String baseUrl, String accessKey, String secretKey) throws Exception {
+    URI uri = URI.create(baseUrl);
+    String host = uri.getHost();
+    int port = uri.getPort();
+    String s3Host;
+    if (port == -1 || port == 443 || port == 80) {
+        s3Host = host;
+    } else {
+        s3Host = host + ":" + port;
+    }
+    String date = amzDate.substring(0, 8);
+    
+    // Для HEAD запроса тело пустое, контент-хэш - хэш пустой строки
+    String contentHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    
+    // Строим canonical request для HEAD
+    String canonicalHeaders = "host:" + s3Host + "\n" +
+                             "x-amz-content-sha256:" + contentHash + "\n" +
+                             "x-amz-date:" + amzDate + "\n";
+    String signedHeaders = "host;x-amz-content-sha256;x-amz-date";
+    
+    String canonicalRequest = String.join("\n",
+            "HEAD", path, "", // query string пустой
+            canonicalHeaders, signedHeaders, contentHash);
+    
+    String stringToSign = buildStringToSign(amzDate, date, region, "s3", canonicalRequest);
+    String signature = calculateSignature(secretKey, date, region, "s3", stringToSign);
+    String authorization = "AWS4-HMAC-SHA256 Credential=" + accessKey + "/" + date
+            + "/" + region + "/s3/aws4_request"
+            + ", SignedHeaders=" + signedHeaders
+            + ", Signature=" + signature;
+    
+    String url = baseUrl + path;
+    
+    return HttpRequest.newBuilder(URI.create(url))
+            .method("HEAD", HttpRequest.BodyPublishers.noBody())
+            .header("x-amz-date", amzDate)
+            .header("x-amz-content-sha256", contentHash)
+            .header("Authorization", authorization)
+            .build();
+}
+
+/**
+ * Строит ответ для HEAD запроса (без тела, только заголовки).
+ */
+private ResponseEntity<?> buildHeadResponse(HttpResponse<Void> response) {
+    ResponseEntity.BodyBuilder rb = ResponseEntity.status(response.statusCode());
+    
+    // Пробрасываем все заголовки, которые вернул S3
+    response.headers().map().forEach((name, values) -> {
+        values.forEach(value -> rb.header(name, value));
+    });
+    
+    return rb.build();
+}
