@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("")
-@Tag(name = "S3 Browse", description = "Просмотр бакетов и файлов S3 с валидацией AWS4 подписи")
+@Tag(name = "S3 Browse", description = "РџСЂРѕСЃРјРѕС‚СЂ Р±Р°РєРµС‚РѕРІ Рё С„Р°Р№Р»РѕРІ S3 СЃ РІР°Р»РёРґР°С†РёРµР№ AWS4 РїРѕРґРїРёСЃРё")
 public class S3BrowseController {
 
     private static final Logger log = LoggerFactory.getLogger(S3BrowseController.class);
@@ -63,14 +63,14 @@ public class S3BrowseController {
         this.backupProps = backupProps;
         this.httpClient  = createHttpClient(timeoutMs, sslVerify);
         
-        // Отладочная информация о загруженных свойствах
+        // РћС‚Р»Р°РґРѕС‡РЅР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ Рѕ Р·Р°РіСЂСѓР¶РµРЅРЅС‹С… СЃРІРѕР№СЃС‚РІР°С…
         log.info("{} S3Properties loaded: url={}, presignHostSource={}, presignHostDestination={}", 
                 LG.USBLOGINFO, props.getUrl(), props.getPresignHostSource(), props.getPresignHostDestination());
     }
 
     /**
-     * Создаёт HttpClient с настройками таймаута и SSL.
-     * При ssl.verify=false отключает проверку сертификатов (только для тестовой среды).
+     * РЎРѕР·РґР°С‘С‚ HttpClient СЃ РЅР°СЃС‚СЂРѕР№РєР°РјРё С‚Р°Р№РјР°СѓС‚Р° Рё SSL.
+     * РџСЂРё ssl.verify=false РѕС‚РєР»СЋС‡Р°РµС‚ РїСЂРѕРІРµСЂРєСѓ СЃРµСЂС‚РёС„РёРєР°С‚РѕРІ (С‚РѕР»СЊРєРѕ РґР»СЏ С‚РµСЃС‚РѕРІРѕР№ СЃСЂРµРґС‹).
      */
     private HttpClient createHttpClient(long timeoutMs, boolean sslVerify) throws NoSuchAlgorithmException, KeyManagementException {
         HttpClient.Builder builder = HttpClient.newBuilder()
@@ -98,13 +98,13 @@ public class S3BrowseController {
     // -------------------------------------------------------------------------
 
     /**
-     * HEAD /** — проверка существования и метаданных объекта (statObject/headObject).
-     * Используется S3-клиентами (MinIO SDK, AWS SDK) для получения ETag, Content-Length,
-     * Content-Type без скачивания тела объекта.
-     * Требует валидный заголовок Authorization: AWS4-HMAC-SHA256.
-     * Системные пути пропускаются без обработки.
+     * HEAD /** вЂ” РїСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ Рё РјРµС‚Р°РґР°РЅРЅС‹С… РѕР±СЉРµРєС‚Р° (statObject/headObject).
+     * РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ S3-РєР»РёРµРЅС‚Р°РјРё (MinIO SDK, AWS SDK) РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ ETag, Content-Length,
+     * Content-Type Р±РµР· СЃРєР°С‡РёРІР°РЅРёСЏ С‚РµР»Р° РѕР±СЉРµРєС‚Р°.
+     * РўСЂРµР±СѓРµС‚ РІР°Р»РёРґРЅС‹Р№ Р·Р°РіРѕР»РѕРІРѕРє Authorization: AWS4-HMAC-SHA256.
+     * РЎРёСЃС‚РµРјРЅС‹Рµ РїСѓС‚Рё РїСЂРѕРїСѓСЃРєР°СЋС‚СЃСЏ Р±РµР· РѕР±СЂР°Р±РѕС‚РєРё.
      */
-    @Operation(summary = "Проверка существования и метаданных объекта (HEAD)")
+    @Operation(summary = "РџСЂРѕРІРµСЂРєР° СЃСѓС‰РµСЃС‚РІРѕРІР°РЅРёСЏ Рё РјРµС‚Р°РґР°РЅРЅС‹С… РѕР±СЉРµРєС‚Р° (HEAD)")
     @RequestMapping(value = "/**", method = RequestMethod.HEAD)
     public ResponseEntity<?> head(HttpServletRequest request) {
         String path = request.getRequestURI();
@@ -116,10 +116,10 @@ public class S3BrowseController {
     }
 
     /**
-     * GET / — возвращает список всех бакетов primary S3.
-     * Требует валидный заголовок Authorization: AWS4-HMAC-SHA256.
+     * GET / вЂ” РІРѕР·РІСЂР°С‰Р°РµС‚ СЃРїРёСЃРѕРє РІСЃРµС… Р±Р°РєРµС‚РѕРІ primary S3.
+     * РўСЂРµР±СѓРµС‚ РІР°Р»РёРґРЅС‹Р№ Р·Р°РіРѕР»РѕРІРѕРє Authorization: AWS4-HMAC-SHA256.
      */
-    @Operation(summary = "Список всех бакетов")
+    @Operation(summary = "РЎРїРёСЃРѕРє РІСЃРµС… Р±Р°РєРµС‚РѕРІ")
     @GetMapping("/")
     public ResponseEntity<?> listBuckets(HttpServletRequest request) {
         logRequest(request);
@@ -129,13 +129,13 @@ public class S3BrowseController {
     }
 
     /**
-     * GET /** — проксирует GET запрос к S3: скачивание объекта или листинг бакета.
-     * Системные пути (/actuator, /swagger-ui, /api/) пропускаются без обработки.
-     * Поддерживает два режима аутентификации:
+     * GET /** вЂ” РїСЂРѕРєСЃРёСЂСѓРµС‚ GET Р·Р°РїСЂРѕСЃ Рє S3: СЃРєР°С‡РёРІР°РЅРёРµ РѕР±СЉРµРєС‚Р° РёР»Рё Р»РёСЃС‚РёРЅРі Р±Р°РєРµС‚Р°.
+     * РЎРёСЃС‚РµРјРЅС‹Рµ РїСѓС‚Рё (/actuator, /swagger-ui, /api/) РїСЂРѕРїСѓСЃРєР°СЋС‚СЃСЏ Р±РµР· РѕР±СЂР°Р±РѕС‚РєРё.
+     * РџРѕРґРґРµСЂР¶РёРІР°РµС‚ РґРІР° СЂРµР¶РёРјР° Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё:
      *   - AWS4 header (Authorization: AWS4-HMAC-SHA256)
-     *   - Presigned URL (параметр X-Amz-Signature в query string)
+     *   - Presigned URL (РїР°СЂР°РјРµС‚СЂ X-Amz-Signature РІ query string)
      */
-    @Operation(summary = "Проксирование запроса к S3 (AWS4 header или PreSigned URL)")
+    @Operation(summary = "РџСЂРѕРєСЃРёСЂРѕРІР°РЅРёРµ Р·Р°РїСЂРѕСЃР° Рє S3 (AWS4 header РёР»Рё PreSigned URL)")
     @GetMapping("/**")
     public ResponseEntity<?> proxy(HttpServletRequest request) {
         String path = request.getRequestURI();
@@ -150,11 +150,11 @@ public class S3BrowseController {
     }
 
     /**
-     * POST /** — загрузка объекта в S3 через multipart/form-data.
-     * Требует валидный заголовок Authorization: AWS4-HMAC-SHA256.
-     * Системные пути пропускаются без обработки.
+     * POST /** вЂ” Р·Р°РіСЂСѓР·РєР° РѕР±СЉРµРєС‚Р° РІ S3 С‡РµСЂРµР· multipart/form-data.
+     * РўСЂРµР±СѓРµС‚ РІР°Р»РёРґРЅС‹Р№ Р·Р°РіРѕР»РѕРІРѕРє Authorization: AWS4-HMAC-SHA256.
+     * РЎРёСЃС‚РµРјРЅС‹Рµ РїСѓС‚Рё РїСЂРѕРїСѓСЃРєР°СЋС‚СЃСЏ Р±РµР· РѕР±СЂР°Р±РѕС‚РєРё.
      */
-    @Operation(summary = "Загрузка объекта в S3 через multipart/form-data (POST)")
+    @Operation(summary = "Р—Р°РіСЂСѓР·РєР° РѕР±СЉРµРєС‚Р° РІ S3 С‡РµСЂРµР· multipart/form-data (POST)")
     @PostMapping("/**")
     public ResponseEntity<?> post(HttpServletRequest request) {
         String path = request.getRequestURI();
@@ -172,11 +172,11 @@ public class S3BrowseController {
     }
 
     /**
-     * PUT /** — загрузка объекта в S3 с телом запроса.
-     * Требует валидный заголовок Authorization: AWS4-HMAC-SHA256.
-     * Системные пути пропускаются без обработки.
+     * PUT /** вЂ” Р·Р°РіСЂСѓР·РєР° РѕР±СЉРµРєС‚Р° РІ S3 СЃ С‚РµР»РѕРј Р·Р°РїСЂРѕСЃР°.
+     * РўСЂРµР±СѓРµС‚ РІР°Р»РёРґРЅС‹Р№ Р·Р°РіРѕР»РѕРІРѕРє Authorization: AWS4-HMAC-SHA256.
+     * РЎРёСЃС‚РµРјРЅС‹Рµ РїСѓС‚Рё РїСЂРѕРїСѓСЃРєР°СЋС‚СЃСЏ Р±РµР· РѕР±СЂР°Р±РѕС‚РєРё.
      */
-    @Operation(summary = "Загрузка объекта в S3")
+    @Operation(summary = "Р—Р°РіСЂСѓР·РєР° РѕР±СЉРµРєС‚Р° РІ S3")
     @PutMapping("/**")
     public ResponseEntity<?> put(HttpServletRequest request) {
         String path = request.getRequestURI();
@@ -194,11 +194,11 @@ public class S3BrowseController {
     }
 
     /**
-     * DELETE /** — удаление объекта из S3.
-     * Требует валидный заголовок Authorization: AWS4-HMAC-SHA256.
-     * Системные пути пропускаются без обработки.
+     * DELETE /** вЂ” СѓРґР°Р»РµРЅРёРµ РѕР±СЉРµРєС‚Р° РёР· S3.
+     * РўСЂРµР±СѓРµС‚ РІР°Р»РёРґРЅС‹Р№ Р·Р°РіРѕР»РѕРІРѕРє Authorization: AWS4-HMAC-SHA256.
+     * РЎРёСЃС‚РµРјРЅС‹Рµ РїСѓС‚Рё РїСЂРѕРїСѓСЃРєР°СЋС‚СЃСЏ Р±РµР· РѕР±СЂР°Р±РѕС‚РєРё.
      */
-    @Operation(summary = "Удаление объекта из S3")
+    @Operation(summary = "РЈРґР°Р»РµРЅРёРµ РѕР±СЉРµРєС‚Р° РёР· S3")
     @DeleteMapping("/**")
     public ResponseEntity<?> delete(HttpServletRequest request) {
         String path = request.getRequestURI();
@@ -214,11 +214,11 @@ public class S3BrowseController {
     // -------------------------------------------------------------------------
 
     /**
-     * Отправляет запрос на primary S3 с автоматическим failover на backup.
-     * Переключение на backup происходит при:
-     *   - сетевой ошибке (ConnectException, UnknownHostException, HttpTimeoutException)
-     *   - статусе ответа 500, 502, 503
-     * Запрос к backup переподписывается под backup accessKey/secretKey.
+     * РћС‚РїСЂР°РІР»СЏРµС‚ Р·Р°РїСЂРѕСЃ РЅР° primary S3 СЃ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёРј failover РЅР° backup.
+     * РџРµСЂРµРєР»СЋС‡РµРЅРёРµ РЅР° backup РїСЂРѕРёСЃС…РѕРґРёС‚ РїСЂРё:
+     *   - СЃРµС‚РµРІРѕР№ РѕС€РёР±РєРµ (ConnectException, UnknownHostException, HttpTimeoutException)
+     *   - СЃС‚Р°С‚СѓСЃРµ РѕС‚РІРµС‚Р° 500, 502, 503
+     * Р—Р°РїСЂРѕСЃ Рє backup РїРµСЂРµРїРѕРґРїРёСЃС‹РІР°РµС‚СЃСЏ РїРѕРґ backup accessKey/secretKey.
      */
     private ResponseEntity<?> sendWithFailover(HttpServletRequest request, String path,
                                                 String method, byte[] body) {
@@ -232,7 +232,7 @@ public class S3BrowseController {
         String amzDate = request.getHeader("x-amz-date");
         String region  = extractCredentialPart(request.getHeader("authorization"), 2);
 
-        // --- попытка primary ---
+        // --- РїРѕРїС‹С‚РєР° primary ---
         try {
             HttpRequest s3Request = buildS3Request(method, body, path, query, amzDate, region,
                     props.getUrl(), props.getAccessKey(), props.getSecretKey(),
@@ -246,18 +246,18 @@ public class S3BrowseController {
                 log.info("{} {} primary OK: status={} path={}", LG.USBLOGINFO, method, response.statusCode(), path);
                 return buildResponse(response);
             }
-            log.warn("{} {} primary returned {} — switching to backup, path={}",
+            log.warn("{} {} primary returned {} вЂ” switching to backup, path={}",
                     LG.USBLOGWARNING, method, response.statusCode(), path);
 
         } catch (HttpTimeoutException | ConnectException | UnknownHostException e) {
-            log.warn("{} {} primary unavailable ({}): {} — switching to backup, path={}",
+            log.warn("{} {} primary unavailable ({}): {} вЂ” switching to backup, path={}",
                     LG.USBLOGWARNING, method, e.getClass().getSimpleName(), e.getMessage(), path);
         } catch (Exception e) {
-            log.warn("{} {} primary error: {} — switching to backup, path={}",
+            log.warn("{} {} primary error: {} вЂ” switching to backup, path={}",
                     LG.USBLOGWARNING, method, e.getMessage(), path);
         }
 
-        // --- fallback на backup ---
+        // --- fallback РЅР° backup ---
         try {
             HttpRequest backupRequest = buildS3Request(method, body, path, query, amzDate, region,
                     backupProps.getUrl(), backupProps.getAccessKey(), backupProps.getSecretKey(),
@@ -276,10 +276,10 @@ public class S3BrowseController {
     }
 
     /**
-     * Формирует подписанный HttpRequest для отправки на S3.
-     * Вычисляет AWS4 подпись: canonical request > string to sign > HMAC-SHA256.
-     * Для стандартных портов (80, 443) порт в host header опускается.
-     * Для GET/DELETE/HEAD тело пустое — используется хэш пустой строки.
+     * Р¤РѕСЂРјРёСЂСѓРµС‚ РїРѕРґРїРёСЃР°РЅРЅС‹Р№ HttpRequest РґР»СЏ РѕС‚РїСЂР°РІРєРё РЅР° S3.
+     * Р’С‹С‡РёСЃР»СЏРµС‚ AWS4 РїРѕРґРїРёСЃСЊ: canonical request в†’ string to sign в†’ HMAC-SHA256.
+     * Р”Р»СЏ СЃС‚Р°РЅРґР°СЂС‚РЅС‹С… РїРѕСЂС‚РѕРІ (80, 443) РїРѕСЂС‚ РІ host header РѕРїСѓСЃРєР°РµС‚СЃСЏ.
+     * Р”Р»СЏ GET/DELETE/HEAD С‚РµР»Рѕ РїСѓСЃС‚РѕРµ вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ С…СЌС€ РїСѓСЃС‚РѕР№ СЃС‚СЂРѕРєРё.
      */
     private HttpRequest buildS3Request(String method, byte[] body, String path, String query,
                                         String amzDate, String region,
@@ -313,7 +313,7 @@ public class S3BrowseController {
 
         boolean includeContentType = ("POST".equals(method) || "PUT".equals(method)) && contentType != null;
 
-        // Сортируем метаданные для canonical headers (требование AWS4)
+        // РЎРѕСЂС‚РёСЂСѓРµРј РјРµС‚Р°РґР°РЅРЅС‹Рµ РґР»СЏ canonical headers (С‚СЂРµР±РѕРІР°РЅРёРµ AWS4)
         TreeMap<String, String> sortedMeta = new TreeMap<>(metaHeaders);
 
         StringBuilder canonicalHeadersSb = new StringBuilder();
@@ -375,8 +375,8 @@ public class S3BrowseController {
     }
 
     /**
-     * Преобразует ответ HttpClient в ResponseEntity.
-     * Пробрасывает заголовки: Content-Type, Content-Disposition, ETag, Location.
+     * РџСЂРµРѕР±СЂР°Р·СѓРµС‚ РѕС‚РІРµС‚ HttpClient РІ ResponseEntity.
+     * РџСЂРѕР±СЂР°СЃС‹РІР°РµС‚ Р·Р°РіРѕР»РѕРІРєРё: Content-Type, Content-Disposition, ETag, Location.
      */
     private ResponseEntity<?> buildResponse(HttpResponse<byte[]> response) {
         ResponseEntity.BodyBuilder rb = ResponseEntity.status(response.statusCode());
@@ -394,9 +394,9 @@ public class S3BrowseController {
     // -------------------------------------------------------------------------
 
     /**
-     * Валидирует AWS Signature V4 из заголовка Authorization входящего запроса.
-     * Проверяет: наличие заголовка, accessKey, вычисляет и сравнивает подпись.
-     * Возвращает null если подпись корректна, иначе ResponseEntity с XML ошибкой S3.
+     * Р’Р°Р»РёРґРёСЂСѓРµС‚ AWS Signature V4 РёР· Р·Р°РіРѕР»РѕРІРєР° Authorization РІС…РѕРґСЏС‰РµРіРѕ Р·Р°РїСЂРѕСЃР°.
+     * РџСЂРѕРІРµСЂСЏРµС‚: РЅР°Р»РёС‡РёРµ Р·Р°РіРѕР»РѕРІРєР°, accessKey, РІС‹С‡РёСЃР»СЏРµС‚ Рё СЃСЂР°РІРЅРёРІР°РµС‚ РїРѕРґРїРёСЃСЊ.
+     * Р’РѕР·РІСЂР°С‰Р°РµС‚ null РµСЃР»Рё РїРѕРґРїРёСЃСЊ РєРѕСЂСЂРµРєС‚РЅР°, РёРЅР°С‡Рµ ResponseEntity СЃ XML РѕС€РёР±РєРѕР№ S3.
      */
     private ResponseEntity<?> validateAwsAuth(HttpServletRequest request, String resource) {
         String authorization = request.getHeader("authorization");
@@ -449,8 +449,8 @@ public class S3BrowseController {
     }
 
     /**
-     * Строит канонический запрос AWS4 из входящего HttpServletRequest.
-     * Заголовки сортируются в алфавитном порядке согласно спецификации AWS4.
+     * РЎС‚СЂРѕРёС‚ РєР°РЅРѕРЅРёС‡РµСЃРєРёР№ Р·Р°РїСЂРѕСЃ AWS4 РёР· РІС…РѕРґСЏС‰РµРіРѕ HttpServletRequest.
+     * Р—Р°РіРѕР»РѕРІРєРё СЃРѕСЂС‚РёСЂСѓСЋС‚СЃСЏ РІ Р°Р»С„Р°РІРёС‚РЅРѕРј РїРѕСЂСЏРґРєРµ СЃРѕРіР»Р°СЃРЅРѕ СЃРїРµС†РёС„РёРєР°С†РёРё AWS4.
      */
     private String buildCanonicalRequest(HttpServletRequest request, String signedHeaders,
                                          String contentHash, String resource) {
@@ -464,8 +464,8 @@ public class S3BrowseController {
     }
 
     /**
-     * Строит строку для подписи (StringToSign) по спецификации AWS4:
-     * AWS4-HMAC-SHA256 + дата + credential scope + SHA256 от canonical request.
+     * РЎС‚СЂРѕРёС‚ СЃС‚СЂРѕРєСѓ РґР»СЏ РїРѕРґРїРёСЃРё (StringToSign) РїРѕ СЃРїРµС†РёС„РёРєР°С†РёРё AWS4:
+     * AWS4-HMAC-SHA256 + РґР°С‚Р° + credential scope + SHA256 РѕС‚ canonical request.
      */
     private String buildStringToSign(String amzDate, String date, String region,
                                      String service, String canonicalRequest) throws Exception {
@@ -475,7 +475,7 @@ public class S3BrowseController {
     }
 
     /**
-     * Вычисляет HMAC-SHA256 подпись AWS4:
+     * Р’С‹С‡РёСЃР»СЏРµС‚ HMAC-SHA256 РїРѕРґРїРёСЃСЊ AWS4:
      * signing key = HMAC(HMAC(HMAC(HMAC("AWS4"+secretKey, date), region), service), "aws4_request")
      */
     private String calculateSignature(String secretKey, String date, String region,
@@ -492,9 +492,9 @@ public class S3BrowseController {
     // -------------------------------------------------------------------------
 
     /**
-     * Извлекает метаданные файла из входящего запроса:
+     * РР·РІР»РµРєР°РµС‚ РјРµС‚Р°РґР°РЅРЅС‹Рµ С„Р°Р№Р»Р° РёР· РІС…РѕРґСЏС‰РµРіРѕ Р·Р°РїСЂРѕСЃР°:
      * Content-Disposition, Cache-Control, Content-Encoding, Content-Language, x-amz-meta-*.
-     * Используется при PUT/POST для сохранения метаданных объекта в S3.
+     * РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РїСЂРё PUT/POST РґР»СЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ РјРµС‚Р°РґР°РЅРЅС‹С… РѕР±СЉРµРєС‚Р° РІ S3.
      */
     private Map<String, String> extractMetaHeaders(HttpServletRequest request) {
         Map<String, String> meta = new java.util.LinkedHashMap<>();
@@ -516,14 +516,14 @@ public class S3BrowseController {
     }
 
     /**
-     * Проверяет, является ли путь системным (actuator, swagger, api).
-     * Такие пути не обрабатываются контроллером и пропускаются дальше.
+     * РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё РїСѓС‚СЊ СЃРёСЃС‚РµРјРЅС‹Рј (actuator, swagger, api).
+     * РўР°РєРёРµ РїСѓС‚Рё РЅРµ РѕР±СЂР°Р±Р°С‚С‹РІР°СЋС‚СЃСЏ РєРѕРЅС‚СЂРѕР»Р»РµСЂРѕРј Рё РїСЂРѕРїСѓСЃРєР°СЋС‚СЃСЏ РґР°Р»СЊС€Рµ.
      */
     private boolean isBypass(String path) {
         return BYPASS_PREFIXES.stream().anyMatch(path::startsWith);
     }
 
-    /** Извлекает часть Credential из заголовка Authorization по индексу: 0=accessKey, 1=date, 2=region, 3=service. */
+    /** РР·РІР»РµРєР°РµС‚ С‡Р°СЃС‚СЊ Credential РёР· Р·Р°РіРѕР»РѕРІРєР° Authorization РїРѕ РёРЅРґРµРєСЃСѓ: 0=accessKey, 1=date, 2=region, 3=service. */
     private String extractCredentialPart(String authorization, int index) {
         try {
             String credential = java.util.regex.Pattern.compile("Credential=([^,]+)")
@@ -534,7 +534,7 @@ public class S3BrowseController {
         } catch (Exception e) { return null; }
     }
 
-    /** Извлекает значение Signature из заголовка Authorization. */
+    /** РР·РІР»РµРєР°РµС‚ Р·РЅР°С‡РµРЅРёРµ Signature РёР· Р·Р°РіРѕР»РѕРІРєР° Authorization. */
     private String extractSignature(String authorization) {
         try {
             return java.util.regex.Pattern.compile("Signature=([a-f0-9]+)")
@@ -543,7 +543,7 @@ public class S3BrowseController {
         } catch (Exception e) { return ""; }
     }
 
-    /** Извлекает список SignedHeaders из заголовка Authorization. */
+    /** РР·РІР»РµРєР°РµС‚ СЃРїРёСЃРѕРє SignedHeaders РёР· Р·Р°РіРѕР»РѕРІРєР° Authorization. */
     private String extractSignedHeaders(String authorization) {
         try {
             return java.util.regex.Pattern.compile("SignedHeaders=([^,]+)")
@@ -552,19 +552,19 @@ public class S3BrowseController {
         } catch (Exception e) { return ""; }
     }
 
-    /** Вычисляет HMAC-SHA256 от data с ключом key. */
+    /** Р’С‹С‡РёСЃР»СЏРµС‚ HMAC-SHA256 РѕС‚ data СЃ РєР»СЋС‡РѕРј key. */
     private byte[] hmac(byte[] key, String data) throws Exception {
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(key, "HmacSHA256"));
         return mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
     }
 
-    /** Вычисляет SHA-256 хэш от массива байт. */
+    /** Р’С‹С‡РёСЃР»СЏРµС‚ SHA-256 С…СЌС€ РѕС‚ РјР°СЃСЃРёРІР° Р±Р°Р№С‚. */
     private byte[] sha256(byte[] data) throws Exception {
         return java.security.MessageDigest.getInstance("SHA-256").digest(data);
     }
 
-    /** Преобразует массив байт в lowercase hex строку. */
+    /** РџСЂРµРѕР±СЂР°Р·СѓРµС‚ РјР°СЃСЃРёРІ Р±Р°Р№С‚ РІ lowercase hex СЃС‚СЂРѕРєСѓ. */
     private String hex(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) sb.append(String.format("%02x", b));
@@ -572,8 +572,8 @@ public class S3BrowseController {
     }
 
     /**
-     * Формирует XML ответ с ошибкой аутентификации в формате S3 (HTTP 403).
-     * Используется при невалидном accessKey или неверной подписи.
+     * Р¤РѕСЂРјРёСЂСѓРµС‚ XML РѕС‚РІРµС‚ СЃ РѕС€РёР±РєРѕР№ Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёРё РІ С„РѕСЂРјР°С‚Рµ S3 (HTTP 403).
+     * РСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РїСЂРё РЅРµРІР°Р»РёРґРЅРѕРј accessKey РёР»Рё РЅРµРІРµСЂРЅРѕР№ РїРѕРґРїРёСЃРё.
      */
     private ResponseEntity<String> buildS3AuthError(String code, String message, String resource) {
         String requestId = UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
@@ -591,7 +591,7 @@ public class S3BrowseController {
                 .body(xml);
     }
 
-    /** Логирует входящий запрос: метод, URI, все заголовки, IP адрес клиента. */
+    /** Р›РѕРіРёСЂСѓРµС‚ РІС…РѕРґСЏС‰РёР№ Р·Р°РїСЂРѕСЃ: РјРµС‚РѕРґ, URI, РІСЃРµ Р·Р°РіРѕР»РѕРІРєРё, IP Р°РґСЂРµСЃ РєР»РёРµРЅС‚Р°. */
     private void logRequest(HttpServletRequest request) {
         String headers = Collections.list(request.getHeaderNames()).stream()
                 .map(name -> name + "=" + request.getHeader(name))
@@ -609,10 +609,10 @@ public class S3BrowseController {
     // -------------------------------------------------------------------------
 
     /**
-     * Обрабатывает запрос с Presigned URL (параметр X-Amz-Signature в query string).
-     * Выполняет валидацию: наличие обязательных параметров, срок действия, подпись.
-     * При успехе — проксирует запрос к S3 как обычный AWS4 подписанный запрос.
-     * Хост в подписи заменяется: s3.presign.host.source > s3.presign.host.destination.
+     * РћР±СЂР°Р±Р°С‚С‹РІР°РµС‚ Р·Р°РїСЂРѕСЃ СЃ Presigned URL (РїР°СЂР°РјРµС‚СЂ X-Amz-Signature РІ query string).
+     * Р’С‹РїРѕР»РЅСЏРµС‚ РІР°Р»РёРґР°С†РёСЋ: РЅР°Р»РёС‡РёРµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹С… РїР°СЂР°РјРµС‚СЂРѕРІ, СЃСЂРѕРє РґРµР№СЃС‚РІРёСЏ, РїРѕРґРїРёСЃСЊ.
+     * РџСЂРё СѓСЃРїРµС…Рµ вЂ” РїСЂРѕРєСЃРёСЂСѓРµС‚ Р·Р°РїСЂРѕСЃ Рє S3 РєР°Рє РѕР±С‹С‡РЅС‹Р№ AWS4 РїРѕРґРїРёСЃР°РЅРЅС‹Р№ Р·Р°РїСЂРѕСЃ.
+     * РҐРѕСЃС‚ РІ РїРѕРґРїРёСЃРё Р·Р°РјРµРЅСЏРµС‚СЃСЏ: s3.presign.host.source в†’ s3.presign.host.destination.
      */
     private ResponseEntity<?> handlePresigned(HttpServletRequest request, String path) {
         String rawQuery = request.getQueryString();
@@ -695,14 +695,14 @@ public class S3BrowseController {
     }
 
     /**
-     * Presigned GET — подпись проверена локально, запрос к S3 выполняется
-     * как обычный подписанный GET без presigned query, чтобы избежать
-     * конфликта хостов между прокси и хранилищем.
+     * Presigned GET вЂ” РїРѕРґРїРёСЃСЊ РїСЂРѕРІРµСЂРµРЅР° Р»РѕРєР°Р»СЊРЅРѕ, Р·Р°РїСЂРѕСЃ Рє S3 РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ
+     * РєР°Рє РѕР±С‹С‡РЅС‹Р№ РїРѕРґРїРёСЃР°РЅРЅС‹Р№ GET Р±РµР· presigned query, С‡С‚РѕР±С‹ РёР·Р±РµР¶Р°С‚СЊ
+     * РєРѕРЅС„Р»РёРєС‚Р° С…РѕСЃС‚РѕРІ РјРµР¶РґСѓ РїСЂРѕРєСЃРё Рё С…СЂР°РЅРёР»РёС‰РµРј.
      */
     /**
-     * Выполняет GET запрос к S3 после успешной валидации Presigned URL.
-     * Создаёт новую AWS4 подпись с текущим временем (presigned query не используется).
-     * При недоступности primary переключается на backup, подставляя бакет из s3backup.bucket.base.
+     * Р’С‹РїРѕР»РЅСЏРµС‚ GET Р·Р°РїСЂРѕСЃ Рє S3 РїРѕСЃР»Рµ СѓСЃРїРµС€РЅРѕР№ РІР°Р»РёРґР°С†РёРё Presigned URL.
+     * РЎРѕР·РґР°С‘С‚ РЅРѕРІСѓСЋ AWS4 РїРѕРґРїРёСЃСЊ СЃ С‚РµРєСѓС‰РёРј РІСЂРµРјРµРЅРµРј (presigned query РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ).
+     * РџСЂРё РЅРµРґРѕСЃС‚СѓРїРЅРѕСЃС‚Рё primary РїРµСЂРµРєР»СЋС‡Р°РµС‚СЃСЏ РЅР° backup, РїРѕРґСЃС‚Р°РІР»СЏСЏ Р±Р°РєРµС‚ РёР· s3backup.bucket.base.
      */
     private ResponseEntity<?> sendWithFailoverPresigned(String path, String region) {
         String amzDate = java.time.ZonedDateTime.now(ZoneOffset.UTC)
@@ -722,17 +722,17 @@ public class S3BrowseController {
                 log.info("{} GET presigned primary OK: status={} path={}", LG.USBLOGINFO, response.statusCode(), path);
                 return buildResponseWithFilename(response, fileName);
             }
-            log.warn("{} GET presigned primary returned {} — switching to backup, path={}",
+            log.warn("{} GET presigned primary returned {} вЂ” switching to backup, path={}",
                     LG.USBLOGWARNING, response.statusCode(), path);
         } catch (HttpTimeoutException | ConnectException | UnknownHostException e) {
-            log.warn("{} GET presigned primary unavailable: {} — switching to backup, path={}",
+            log.warn("{} GET presigned primary unavailable: {} вЂ” switching to backup, path={}",
                     LG.USBLOGWARNING, e.getMessage(), path);
         } catch (Exception e) {
-            log.warn("{} GET presigned primary error: {} — switching to backup, path={}",
+            log.warn("{} GET presigned primary error: {} вЂ” switching to backup, path={}",
                     LG.USBLOGWARNING, e.getMessage(), path);
         }
 
-        // backup: подменяем бакет primary на backup в path
+        // backup: РїРѕРґРјРµРЅСЏРµРј Р±Р°РєРµС‚ primary РЅР° backup РІ path
         //String backupPath = "/" + backupProps.getBucket().getBase() + "/" + fileName;
         String backupPath = path.replaceFirst(
                 "/" + props.getBucket().getBase() + "/",
@@ -751,7 +751,7 @@ public class S3BrowseController {
         }
     }
 
-    /** Вычисляет signing key для AWS4: HMAC цепочка от секретного ключа через date, region, service. */
+    /** Р’С‹С‡РёСЃР»СЏРµС‚ signing key РґР»СЏ AWS4: HMAC С†РµРїРѕС‡РєР° РѕС‚ СЃРµРєСЂРµС‚РЅРѕРіРѕ РєР»СЋС‡Р° С‡РµСЂРµР· date, region, service. */
     private byte[] getSigningKey(String secretKey, String date, String region, String service) throws Exception {
         byte[] kDate    = hmac(("AWS4" + secretKey).getBytes(StandardCharsets.UTF_8), date);
         byte[] kRegion  = hmac(kDate, region);
@@ -760,8 +760,8 @@ public class S3BrowseController {
     }
 
     /**
-     * Строит canonical headers для валидации Presigned URL.
-     * Для заголовка host использует целевой хост S3 (не хост прокси).
+     * РЎС‚СЂРѕРёС‚ canonical headers РґР»СЏ РІР°Р»РёРґР°С†РёРё Presigned URL.
+     * Р”Р»СЏ Р·Р°РіРѕР»РѕРІРєР° host РёСЃРїРѕР»СЊР·СѓРµС‚ С†РµР»РµРІРѕР№ С…РѕСЃС‚ S3 (РЅРµ С…РѕСЃС‚ РїСЂРѕРєСЃРё).
      */
     private String buildPresignCanonicalHeaders(HttpServletRequest request, String signedHeaders, String host) {
         StringBuilder sb = new StringBuilder();
@@ -770,12 +770,12 @@ public class S3BrowseController {
             sb.append(headerName).append(":");
             
             if (headerName.equals("host")) {
-                // В Presigned URL host заголовок не передается в запросе,
-                // а вычисляется из URL. Используем целевой хост S3.
+                // Р’ Presigned URL host Р·Р°РіРѕР»РѕРІРѕРє РЅРµ РїРµСЂРµРґР°РµС‚СЃСЏ РІ Р·Р°РїСЂРѕСЃРµ,
+                // Р° РІС‹С‡РёСЃР»СЏРµС‚СЃСЏ РёР· URL. РСЃРїРѕР»СЊР·СѓРµРј С†РµР»РµРІРѕР№ С…РѕСЃС‚ S3.
                 sb.append(host);
             } else {
-                // Для других заголовков получаем значение из запроса
-                // (хотя в Presigned URL обычно только host)
+                // Р”Р»СЏ РґСЂСѓРіРёС… Р·Р°РіРѕР»РѕРІРєРѕРІ РїРѕР»СѓС‡Р°РµРј Р·РЅР°С‡РµРЅРёРµ РёР· Р·Р°РїСЂРѕСЃР°
+                // (С…РѕС‚СЏ РІ Presigned URL РѕР±С‹С‡РЅРѕ С‚РѕР»СЊРєРѕ host)
                 String headerValue = request.getHeader(h);
                 if (headerValue != null) {
                     sb.append(headerValue.trim());
@@ -787,8 +787,8 @@ public class S3BrowseController {
     }
 
     /**
-     * Строит канонический query string для Presigned URL валидации.
-     * Параметры сортируются, URI-кодируются, X-Amz-Signature исключается согласно спецификации AWS4.
+     * РЎС‚СЂРѕРёС‚ РєР°РЅРѕРЅРёС‡РµСЃРєРёР№ query string РґР»СЏ Presigned URL РІР°Р»РёРґР°С†РёРё.
+     * РџР°СЂР°РјРµС‚СЂС‹ СЃРѕСЂС‚РёСЂСѓСЋС‚СЃСЏ, URI-РєРѕРґРёСЂСѓСЋС‚СЃСЏ, X-Amz-Signature РёСЃРєР»СЋС‡Р°РµС‚СЃСЏ СЃРѕРіР»Р°СЃРЅРѕ СЃРїРµС†РёС„РёРєР°С†РёРё AWS4.
      */
     private String buildCanonicalQueryString(String rawQuery) {
         TreeMap<String, String> sorted = new TreeMap<>();
@@ -807,8 +807,8 @@ public class S3BrowseController {
     }
 
     /**
-     * URI-кодирует строку по правилам AWS4: unreserved символы не кодируются,
-     * '/' кодируется как %2F (в отличие от стандартного URL encoding).
+     * URI-РєРѕРґРёСЂСѓРµС‚ СЃС‚СЂРѕРєСѓ РїРѕ РїСЂР°РІРёР»Р°Рј AWS4: unreserved СЃРёРјРІРѕР»С‹ РЅРµ РєРѕРґРёСЂСѓСЋС‚СЃСЏ,
+     * '/' РєРѕРґРёСЂСѓРµС‚СЃСЏ РєР°Рє %2F (РІ РѕС‚Р»РёС‡РёРµ РѕС‚ СЃС‚Р°РЅРґР°СЂС‚РЅРѕРіРѕ URL encoding).
      */
     private String uriEncode(String value) {
         StringBuilder sb = new StringBuilder();
@@ -825,7 +825,7 @@ public class S3BrowseController {
         return sb.toString();
     }
 
-    /** Парсит query string в Map. Ключи не декодируются для сохранения оригинальных имён параметров Presigned URL. */
+    /** РџР°СЂСЃРёС‚ query string РІ Map. РљР»СЋС‡Рё РЅРµ РґРµРєРѕРґРёСЂСѓСЋС‚СЃСЏ РґР»СЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ РѕСЂРёРіРёРЅР°Р»СЊРЅС‹С… РёРјС‘РЅ РїР°СЂР°РјРµС‚СЂРѕРІ Presigned URL. */
     private Map<String, String> parsePresignQuery(String query) {
         Map<String, String> params = new java.util.LinkedHashMap<>();
         if (query == null) return params;
@@ -837,9 +837,9 @@ public class S3BrowseController {
     }
 
     /**
-     * Преобразует ответ HttpClient в ResponseEntity с заголовком Content-Disposition.
-     * Имя файла и размер берутся из заголовков ответа S3 (Content-Disposition, Content-Length).
-     * Если Content-Disposition отсутствует в ответе S3 — строится из имени файла в URL.
+     * РџСЂРµРѕР±СЂР°Р·СѓРµС‚ РѕС‚РІРµС‚ HttpClient РІ ResponseEntity СЃ Р·Р°РіРѕР»РѕРІРєРѕРј Content-Disposition.
+     * РРјСЏ С„Р°Р№Р»Р° Рё СЂР°Р·РјРµСЂ Р±РµСЂСѓС‚СЃСЏ РёР· Р·Р°РіРѕР»РѕРІРєРѕРІ РѕС‚РІРµС‚Р° S3 (Content-Disposition, Content-Length).
+     * Р•СЃР»Рё Content-Disposition РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ РІ РѕС‚РІРµС‚Рµ S3 вЂ” СЃС‚СЂРѕРёС‚СЃСЏ РёР· РёРјРµРЅРё С„Р°Р№Р»Р° РІ URL.
      */
     private ResponseEntity<?> buildResponseWithFilename(HttpResponse<byte[]> response, String fileName) {
         ResponseEntity.BodyBuilder rb = ResponseEntity.status(response.statusCode());
