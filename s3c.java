@@ -29,7 +29,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/s3")
-@Tag(name = "S3 Storage", description = "API для работы с S3/MinIO хранилищем")
+@Tag(name = "S3 Storage", description = "API РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ S3/MinIO С…СЂР°РЅРёР»РёС‰РµРј")
 public class S3Controller {
 
     private final S3Service    s3Service;
@@ -40,7 +40,7 @@ public class S3Controller {
         this.hostStatus = hostStatus;
     }
 
-    @Operation(summary = "Health check сервиса")
+    @Operation(summary = "Health check СЃРµСЂРІРёСЃР°")
     @GetMapping("/health")
     public ResponseEntity<java.util.Map<String, Object>> health() {
         boolean primaryOk = hostStatus.getPrimary().isAvailable();
@@ -53,7 +53,7 @@ public class S3Controller {
         return ResponseEntity.status(up ? 200 : 503).body(body);
     }
 
-    @Operation(summary = "Статус доступности S3 хостов")
+    @Operation(summary = "РЎС‚Р°С‚СѓСЃ РґРѕСЃС‚СѓРїРЅРѕСЃС‚Рё S3 С…РѕСЃС‚РѕРІ")
     @GetMapping("/status")
     public ResponseEntity<java.util.Map<String, Object>> status() {
         S3HostStatus.HostStatus p = hostStatus.getPrimary();
@@ -73,21 +73,21 @@ public class S3Controller {
         return m;
     }
 
-    @Operation(summary = "Загрузить файл в бакет")
+    @Operation(summary = "Р—Р°РіСЂСѓР·РёС‚СЊ С„Р°Р№Р» РІ Р±Р°РєРµС‚")
     @PostMapping("/{bucket}/upload")
     public ResponseEntity<String> upload(
-            @Parameter(description = "Имя бакета") @PathVariable String bucket,
-            @Parameter(description = "Ключ (имя файла) в хранилище") @RequestParam String key,
-            @Parameter(description = "Файл для загрузки") @RequestParam MultipartFile file) throws IOException {
+            @Parameter(description = "РРјСЏ Р±Р°РєРµС‚Р°") @PathVariable String bucket,
+            @Parameter(description = "РљР»СЋС‡ (РёРјСЏ С„Р°Р№Р»Р°) РІ С…СЂР°РЅРёР»РёС‰Рµ") @RequestParam String key,
+            @Parameter(description = "Р¤Р°Р№Р» РґР»СЏ Р·Р°РіСЂСѓР·РєРё") @RequestParam MultipartFile file) throws IOException {
         s3Service.upload(bucket, key, file);
         return ResponseEntity.ok("Uploaded: " + key);
     }
 
-    @Operation(summary = "Скачать файл из бакета")
+    @Operation(summary = "РЎРєР°С‡Р°С‚СЊ С„Р°Р№Р» РёР· Р±Р°РєРµС‚Р°")
     @GetMapping("/{bucket}/download")
     public ResponseEntity<InputStreamResource> download(
-            @Parameter(description = "Имя бакета") @PathVariable String bucket,
-            @Parameter(description = "Ключ (имя файла) в хранилище") @RequestParam String key) {
+            @Parameter(description = "РРјСЏ Р±Р°РєРµС‚Р°") @PathVariable String bucket,
+            @Parameter(description = "РљР»СЋС‡ (РёРјСЏ С„Р°Р№Р»Р°) РІ С…СЂР°РЅРёР»РёС‰Рµ") @RequestParam String key) {
         ResponseInputStream<GetObjectResponse> obj = s3Service.download(bucket, key);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + key + "\"")
@@ -95,66 +95,66 @@ public class S3Controller {
                 .body(new InputStreamResource(obj));
     }
 
-    @Operation(summary = "Получить список объектов в бакете")
+    @Operation(summary = "РџРѕР»СѓС‡РёС‚СЊ СЃРїРёСЃРѕРє РѕР±СЉРµРєС‚РѕРІ РІ Р±Р°РєРµС‚Рµ")
     @GetMapping("/{bucket}/list")
     public ResponseEntity<List<String>> list(
-            @Parameter(description = "Имя бакета") @PathVariable String bucket) {
+            @Parameter(description = "РРјСЏ Р±Р°РєРµС‚Р°") @PathVariable String bucket) {
         return ResponseEntity.ok(s3Service.list(bucket));
     }
 
-    @Operation(summary = "Удалить файл из бакета")
+    @Operation(summary = "РЈРґР°Р»РёС‚СЊ С„Р°Р№Р» РёР· Р±Р°РєРµС‚Р°")
     @DeleteMapping("/{bucket}/delete")
     public ResponseEntity<String> delete(
-            @Parameter(description = "Имя бакета") @PathVariable String bucket,
-            @Parameter(description = "Ключ (имя файла) в хранилище") @RequestParam String key) {
+            @Parameter(description = "РРјСЏ Р±Р°РєРµС‚Р°") @PathVariable String bucket,
+            @Parameter(description = "РљР»СЋС‡ (РёРјСЏ С„Р°Р№Р»Р°) РІ С…СЂР°РЅРёР»РёС‰Рµ") @RequestParam String key) {
         s3Service.delete(bucket, key);
         return ResponseEntity.ok("Deleted: " + key);
     }
 
-    @Operation(summary = "Получить Presigned URL для скачивания файла")
+    @Operation(summary = "РџРѕР»СѓС‡РёС‚СЊ Presigned URL РґР»СЏ СЃРєР°С‡РёРІР°РЅРёСЏ С„Р°Р№Р»Р°")
     @GetMapping("/{bucket}/presign/download")
     public ResponseEntity<String> presignedDownload(
-            @Parameter(description = "Имя бакета") @PathVariable String bucket,
-            @Parameter(description = "Ключ (имя файла) в хранилище") @RequestParam String key,
-            @Parameter(description = "Время жизни ссылки в минутах") @RequestParam(defaultValue = "60") long expiresIn) {
+            @Parameter(description = "РРјСЏ Р±Р°РєРµС‚Р°") @PathVariable String bucket,
+            @Parameter(description = "РљР»СЋС‡ (РёРјСЏ С„Р°Р№Р»Р°) РІ С…СЂР°РЅРёР»РёС‰Рµ") @RequestParam String key,
+            @Parameter(description = "Р’СЂРµРјСЏ Р¶РёР·РЅРё СЃСЃС‹Р»РєРё РІ РјРёРЅСѓС‚Р°С…") @RequestParam(defaultValue = "60") long expiresIn) {
         return ResponseEntity.ok(s3Service.presignedGetUrl(bucket, key, expiresIn));
     }
 
-    @Operation(summary = "Получить Presigned URL для загрузки файла")
+    @Operation(summary = "РџРѕР»СѓС‡РёС‚СЊ Presigned URL РґР»СЏ Р·Р°РіСЂСѓР·РєРё С„Р°Р№Р»Р°")
     @GetMapping("/{bucket}/presign/upload")
     public ResponseEntity<String> presignedUpload(
-            @Parameter(description = "Имя бакета") @PathVariable String bucket,
-            @Parameter(description = "Ключ (имя файла) в хранилище") @RequestParam String key,
-            @Parameter(description = "Время жизни ссылки в минутах") @RequestParam(defaultValue = "60") long expiresIn) {
+            @Parameter(description = "РРјСЏ Р±Р°РєРµС‚Р°") @PathVariable String bucket,
+            @Parameter(description = "РљР»СЋС‡ (РёРјСЏ С„Р°Р№Р»Р°) РІ С…СЂР°РЅРёР»РёС‰Рµ") @RequestParam String key,
+            @Parameter(description = "Р’СЂРµРјСЏ Р¶РёР·РЅРё СЃСЃС‹Р»РєРё РІ РјРёРЅСѓС‚Р°С…") @RequestParam(defaultValue = "60") long expiresIn) {
         return ResponseEntity.ok(s3Service.presignedPutUrl(bucket, key, expiresIn));
     }
 
     /**
-     * Генерирует Presigned URL для произвольного S3-совместимого хранилища.
-     * Все параметры подключения передаются явно — метод не использует конфигурацию приложения.
-     * Предназначен для ручной проверки и отладки.
+     * Р“РµРЅРµСЂРёСЂСѓРµС‚ Presigned URL РґР»СЏ РїСЂРѕРёР·РІРѕР»СЊРЅРѕРіРѕ S3-СЃРѕРІРјРµСЃС‚РёРјРѕРіРѕ С…СЂР°РЅРёР»РёС‰Р°.
+     * Р’СЃРµ РїР°СЂР°РјРµС‚СЂС‹ РїРѕРґРєР»СЋС‡РµРЅРёСЏ РїРµСЂРµРґР°СЋС‚СЃСЏ СЏРІРЅРѕ вЂ” РјРµС‚РѕРґ РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚ РєРѕРЅС„РёРіСѓСЂР°С†РёСЋ РїСЂРёР»РѕР¶РµРЅРёСЏ.
+     * РџСЂРµРґРЅР°Р·РЅР°С‡РµРЅ РґР»СЏ СЂСѓС‡РЅРѕР№ РїСЂРѕРІРµСЂРєРё Рё РѕС‚Р»Р°РґРєРё.
      *
-     * @param host      полный URL хоста хранилища, например https://s3.example.com
-     * @param bucket    имя бакета
-     * @param key       ключ (путь) объекта в бакете
+     * @param host      РїРѕР»РЅС‹Р№ URL С…РѕСЃС‚Р° С…СЂР°РЅРёР»РёС‰Р°, РЅР°РїСЂРёРјРµСЂ https://s3.example.com
+     * @param bucket    РёРјСЏ Р±Р°РєРµС‚Р°
+     * @param key       РєР»СЋС‡ (РїСѓС‚СЊ) РѕР±СЉРµРєС‚Р° РІ Р±Р°РєРµС‚Рµ
      * @param accessKey AWS Access Key
      * @param secretKey AWS Secret Key
-     * @param region    регион, например us-east-1
-     * @param expiresIn время жизни ссылки в минутах
-     * @param method    тип операции: GET (скачивание) или PUT (загрузка)
-     * @return сгенерированный Presigned URL
+     * @param region    СЂРµРіРёРѕРЅ, РЅР°РїСЂРёРјРµСЂ us-east-1
+     * @param expiresIn РІСЂРµРјСЏ Р¶РёР·РЅРё СЃСЃС‹Р»РєРё РІ РјРёРЅСѓС‚Р°С…
+     * @param method    С‚РёРї РѕРїРµСЂР°С†РёРё: GET (СЃРєР°С‡РёРІР°РЅРёРµ) РёР»Рё PUT (Р·Р°РіСЂСѓР·РєР°)
+     * @return СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅРЅС‹Р№ Presigned URL
      */
-    @Operation(summary = "Сгенерировать Presigned URL для произвольного хранилища (для проверки)")
+    @Operation(summary = "РЎРіРµРЅРµСЂРёСЂРѕРІР°С‚СЊ Presigned URL РґР»СЏ РїСЂРѕРёР·РІРѕР»СЊРЅРѕРіРѕ С…СЂР°РЅРёР»РёС‰Р° (РґР»СЏ РїСЂРѕРІРµСЂРєРё)")
     @GetMapping("/presign/custom")
     public ResponseEntity<String> presignCustom(
-            @Parameter(description = "URL хоста хранилища, например https://s3.example.com") @RequestParam String host,
-            @Parameter(description = "Имя бакета") @RequestParam String bucket,
-            @Parameter(description = "Ключ (путь) объекта в бакете") @RequestParam String key,
+            @Parameter(description = "URL С…РѕСЃС‚Р° С…СЂР°РЅРёР»РёС‰Р°, РЅР°РїСЂРёРјРµСЂ https://s3.example.com") @RequestParam String host,
+            @Parameter(description = "РРјСЏ Р±Р°РєРµС‚Р°") @RequestParam String bucket,
+            @Parameter(description = "РљР»СЋС‡ (РїСѓС‚СЊ) РѕР±СЉРµРєС‚Р° РІ Р±Р°РєРµС‚Рµ") @RequestParam String key,
             @Parameter(description = "AWS Access Key") @RequestParam String accessKey,
             @Parameter(description = "AWS Secret Key") @RequestParam String secretKey,
-            @Parameter(description = "Регион, например us-east-1") @RequestParam(defaultValue = "us-east-1") String region,
-            @Parameter(description = "Время жизни ссылки в минутах") @RequestParam(defaultValue = "60") long expiresIn,
-            @Parameter(description = "Тип операции: GET или PUT") @RequestParam(defaultValue = "GET") String method) {
+            @Parameter(description = "Р РµРіРёРѕРЅ, РЅР°РїСЂРёРјРµСЂ us-east-1") @RequestParam(defaultValue = "us-east-1") String region,
+            @Parameter(description = "Р’СЂРµРјСЏ Р¶РёР·РЅРё СЃСЃС‹Р»РєРё РІ РјРёРЅСѓС‚Р°С…") @RequestParam(defaultValue = "60") long expiresIn,
+            @Parameter(description = "РўРёРї РѕРїРµСЂР°С†РёРё: GET РёР»Рё PUT") @RequestParam(defaultValue = "GET") String method) {
 
         S3Presigner presigner = S3Presigner.builder()
                 .endpointOverride(URI.create(host))
