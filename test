@@ -1,1 +1,5 @@
+# Presigned URL host replacement for signature verification
+s3.presign-host-source=s3failover.intgr-t.fc.uralsibbank.ru
+s3.presign-host-destination=msk-s3-test.fc.uralsibbank.ru
+
 
