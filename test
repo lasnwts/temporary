@@ -1,5 +1,81 @@
-# Presigned URL host replacement for signature verification
-s3.presign-host-source=s3failover.intgr-t.fc.uralsibbank.ru
-s3.presign-host-destination=msk-s3-test.fc.uralsibbank.ru
+package ru.usb.zsk945028.configs;
 
+import org.apache.http.client.HttpClient;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContextBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.web.client.RestTemplate;
+
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.time.Duration;
+
+@Configuration
+public class ConfigRestTemplate {
+
+    private static final Logger logger = LoggerFactory.getLogger(ConfigRestTemplate.class);
+
+    @Value("${http.client.ssl.trust-store}")
+    private String trustStore;
+
+    @Value("${http.client.ssl.trust-store-password}")
+    private String trustStorePassword;
+
+    @Bean
+    public RestTemplate restTemplate(RestTemplateBuilder builder)
+            throws IOException, CertificateException, NoSuchAlgorithmException,
+            KeyStoreException, KeyManagementException {
+
+        Path path = Paths.get(trustStore);
+        if (!Files.exists(path)) {
+            throw new IllegalStateException(
+                    "SSL trust-store not found: " + path.toAbsolutePath()
+                            + ". Проверьте свойство http.client.ssl.trust-store в application.properties");
+        }
+        if (!Files.isReadable(path)) {
+            throw new IllegalStateException(
+                    "SSL trust-store is not readable: " + path.toAbsolutePath());
+        }
+        logger.info("Используется SSL trust-store: {}", path.toAbsolutePath());
+
+        File jksStore = path.toFile();
+
+        // Стандартная проверка PKIX на основе сертификатов в store.jks.
+        // Никаких TrustStrategy и NoopHostnameVerifier — цепочка должна
+        // построиться до доверенного корня, а hostname — совпасть.
+        SSLContext sslContext = new SSLContextBuilder()
+                .loadTrustMaterial(jksStore, trustStorePassword.toCharArray())
+                .build();
+
+        SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(sslContext);
+
+        HttpClient httpClient = HttpClients.custom()
+                .setSSLSocketFactory(socketFactory)
+                .build();
+
+        logger.info("SSL trust-store {} успешно загружен для подключения к portal5.cbr.ru",
+                jksStore.getAbsolutePath());
+
+        return builder
+                .requestFactory(() -> new HttpComponentsClientHttpRequestFactory(httpClient))
+                .setConnectTimeout(Duration.ofMillis(12000))
+                .setReadTimeout(Duration.ofMillis(16000))
+                .build();
+    }
+}
 
