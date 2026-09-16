@@ -1,3 +1,5 @@
+server.ssl.enabled-protocols=TLSv1.2,TLSv1.3
+
 package ru.usb.zsk945028.configs;
 
 import org.apache.http.client.HttpClient;
