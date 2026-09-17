@@ -1,4 +1,5 @@
 server.ssl.enabled-protocols=TLSv1.2,TLSv1.3
+System.setProperty("javax.net.debug", "ssl,handshake");
 
 package ru.usb.zsk945028.configs;
 
