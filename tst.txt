@@ -1,3 +1,141 @@
+javax.net.ssl|WARNING|11|restartedMain|2026-09-17 14:08:31.182 MSK|SignatureScheme.java:295|Signature algorithm, ed25519, is not supported by the underlying providers
+javax.net.ssl|WARNING|11|restartedMain|2026-09-17 14:08:31.182 MSK|SignatureScheme.java:295|Signature algorithm, ed448, is not supported by the underlying providers
+javax.net.ssl|INFO|11|restartedMain|2026-09-17 14:08:31.187 MSK|AlpnExtension.java:178|No available application protocols
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.187 MSK|SSLExtensions.java:260|Ignore, context unavailable extension: application_layer_protocol_negotiation
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.188 MSK|SSLExtensions.java:260|Ignore, context unavailable extension: renegotiation_info
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.189 MSK|ClientHello.java:653|Produced ClientHello handshake message (
+"ClientHello": {
+  "client version"      : "TLSv1.2",
+  "random"              : "F1 32 AD 46 C4 BF 92 00 FF 33 76 47 9F 71 0A F4 D6 83 79 AC 3A DF 95 B1 09 BF 72 2C FE 5F B2 3B",
+  "session id"          : "",
+  "cipher suites"       : "[TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384(0xC02C), TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256(0xC02B), TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384(0xC030), TLS_RSA_WITH_AES_256_GCM_SHA384(0x009D), TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384(0xC02E), TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384(0xC032), TLS_DHE_RSA_WITH_AES_256_GCM_SHA384(0x009F), TLS_DHE_DSS_WITH_AES_256_GCM_SHA384(0x00A3), TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256(0xC02F), TLS_RSA_WITH_AES_128_GCM_SHA256(0x009C), TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256(0xC02D), TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256(0xC031), TLS_DHE_RSA_WITH_AES_128_GCM_SHA256(0x009E), TLS_DHE_DSS_WITH_AES_128_GCM_SHA256(0x00A2), TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384(0xC024), TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384(0xC028), TLS_RSA_WITH_AES_256_CBC_SHA256(0x003D), TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384(0xC026), TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384(0xC02A), TLS_DHE_RSA_WITH_AES_256_CBC_SHA256(0x006B), TLS_DHE_DSS_WITH_AES_256_CBC_SHA256(0x006A), TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA(0xC00A), TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA(0xC014), TLS_RSA_WITH_AES_256_CBC_SHA(0x0035), TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA(0xC005), TLS_ECDH_RSA_WITH_AES_256_CBC_SHA(0xC00F), TLS_DHE_RSA_WITH_AES_256_CBC_SHA(0x0039), TLS_DHE_DSS_WITH_AES_256_CBC_SHA(0x0038), TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256(0xC023), TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256(0xC027), TLS_RSA_WITH_AES_128_CBC_SHA256(0x003C), TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256(0xC025), TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256(0xC029), TLS_DHE_RSA_WITH_AES_128_CBC_SHA256(0x0067), TLS_DHE_DSS_WITH_AES_128_CBC_SHA256(0x0040), TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA(0xC009), TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA(0xC013), TLS_RSA_WITH_AES_128_CBC_SHA(0x002F), TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA(0xC004), TLS_ECDH_RSA_WITH_AES_128_CBC_SHA(0xC00E), TLS_DHE_RSA_WITH_AES_128_CBC_SHA(0x0033), TLS_DHE_DSS_WITH_AES_128_CBC_SHA(0x0032), TLS_EMPTY_RENEGOTIATION_INFO_SCSV(0x00FF)]",
+  "compression methods" : "00",
+  "extensions"          : [
+    "server_name (0)": {
+      type=host_name (0), value=portal5test.cbr.ru
+    },
+    "status_request (5)": {
+      "certificate status type": ocsp
+      "OCSP status request": {
+        "responder_id": <empty>
+        "request extensions": {
+          <empty>
+        }
+      }
+    },
+    "supported_groups (10)": {
+      "versions": [x25519, secp256r1, secp384r1, secp521r1, x448, ffdhe2048, ffdhe3072, ffdhe4096, ffdhe6144, ffdhe8192]
+    },
+    "ec_point_formats (11)": {
+      "formats": [uncompressed]
+    },
+    "signature_algorithms (13)": {
+      "signature schemes": [ecdsa_secp256r1_sha256, ecdsa_secp384r1_sha384, ecdsa_secp521r1_sha512, rsa_pss_rsae_sha256, rsa_pss_rsae_sha384, rsa_pss_rsae_sha512, rsa_pss_pss_sha256, rsa_pss_pss_sha384, rsa_pss_pss_sha512, rsa_pkcs1_sha256, rsa_pkcs1_sha384, rsa_pkcs1_sha512, dsa_sha256, ecdsa_sha1, rsa_pkcs1_sha1, dsa_sha1]
+    },
+    "signature_algorithms_cert (50)": {
+      "signature schemes": [ecdsa_secp256r1_sha256, ecdsa_secp384r1_sha384, ecdsa_secp521r1_sha512, rsa_pss_rsae_sha256, rsa_pss_rsae_sha384, rsa_pss_rsae_sha512, rsa_pss_pss_sha256, rsa_pss_pss_sha384, rsa_pss_pss_sha512, rsa_pkcs1_sha256, rsa_pkcs1_sha384, rsa_pkcs1_sha512, dsa_sha256, ecdsa_sha1, rsa_pkcs1_sha1, dsa_sha1]
+    },
+    "status_request_v2 (17)": {
+      "cert status request": {
+        "certificate status type": ocsp_multi
+        "OCSP status request": {
+          "responder_id": <empty>
+          "request extensions": {
+            <empty>
+          }
+        }
+      }
+    },
+    "extended_master_secret (23)": {
+      <empty>
+    },
+    "supported_versions (43)": {
+      "versions": [TLSv1.2]
+    }
+  ]
+}
+)
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.254 MSK|ServerHello.java:867|Consuming ServerHello handshake message (
+"ServerHello": {
+  "server version"      : "TLSv1.2",
+  "random"              : "8C 8A 88 91 A9 51 D0 47 1D 56 81 50 1A 71 6A 65 27 7F 6D 65 13 C9 5C A8 44 4F 57 4E 47 52 44 01",
+  "session id"          : "73 18 DD 66 60 D0 2E 77 6F 8D 8D 79 42 21 68 CB D7 58 FA 68 FB 92 13 14 BF D4 E0 74 CF 75 D5 BA",
+  "cipher suite"        : "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256(0xC02F)",
+  "compression methods" : "00",
+  "extensions"          : [
+    "renegotiation_info (65,281)": {
+      "renegotiated connection": [<no renegotiated connection>]
+    },
+    "server_name (0)": {
+      <empty extension_data field>
+    },
+    "ec_point_formats (11)": {
+      "formats": [uncompressed, ansiX962_compressed_prime, ansiX962_compressed_char2]
+    },
+    "extended_master_secret (23)": {
+      <empty>
+    }
+  ]
+}
+)
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.254 MSK|SSLExtensions.java:173|Ignore unavailable extension: supported_versions
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.254 MSK|ServerHello.java:963|Negotiated protocol version: TLSv1.2
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.255 MSK|SSLExtensions.java:192|Consumed extension: renegotiation_info
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.255 MSK|SSLExtensions.java:192|Consumed extension: server_name
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.255 MSK|SSLExtensions.java:173|Ignore unavailable extension: max_fragment_length
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.255 MSK|SSLExtensions.java:173|Ignore unavailable extension: status_request
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.255 MSK|SSLExtensions.java:192|Consumed extension: ec_point_formats
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.255 MSK|SSLExtensions.java:173|Ignore unavailable extension: status_request_v2
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.255 MSK|SSLExtensions.java:192|Consumed extension: extended_master_secret
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.256 MSK|SSLExtensions.java:192|Consumed extension: renegotiation_info
+javax.net.ssl|WARNING|11|restartedMain|2026-09-17 14:08:31.256 MSK|SSLExtensions.java:215|Ignore impact of unsupported extension: server_name
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.256 MSK|SSLExtensions.java:207|Ignore unavailable extension: max_fragment_length
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.256 MSK|SSLExtensions.java:207|Ignore unavailable extension: status_request
+javax.net.ssl|WARNING|11|restartedMain|2026-09-17 14:08:31.256 MSK|SSLExtensions.java:215|Ignore impact of unsupported extension: ec_point_formats
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.256 MSK|SSLExtensions.java:207|Ignore unavailable extension: application_layer_protocol_negotiation
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.256 MSK|SSLExtensions.java:207|Ignore unavailable extension: status_request_v2
+javax.net.ssl|WARNING|11|restartedMain|2026-09-17 14:08:31.256 MSK|SSLExtensions.java:215|Ignore impact of unsupported extension: extended_master_secret
+javax.net.ssl|WARNING|11|restartedMain|2026-09-17 14:08:31.256 MSK|SSLExtensions.java:215|Ignore impact of unsupported extension: renegotiation_info
+javax.net.ssl|ERROR|11|restartedMain|2026-09-17 14:08:31.261 MSK|TransportContext.java:341|Fatal (HANDSHAKE_FAILURE): Couldn't kickstart handshaking (
+"throwable" : {
+  javax.net.ssl.SSLHandshakeException: Remote host terminated the handshake
+  	at java.base/sun.security.ssl.SSLSocketImpl.handleEOF(SSLSocketImpl.java:1616)
+  	at java.base/sun.security.ssl.SSLSocketImpl.decode(SSLSocketImpl.java:1434)
+  	at java.base/sun.security.ssl.SSLSocketImpl.readHandshakeRecord(SSLSocketImpl.java:1336)
+  	at java.base/sun.security.ssl.SSLSocketImpl.startHandshake(SSLSocketImpl.java:450)
+  	at java.base/sun.security.ssl.SSLSocketImpl.startHandshake(SSLSocketImpl.java:421)
+  	at ru.usb.zsk945028.configs.SslInspectionDetector.inspect(SslInspectionDetector.java:62)
+  	at ru.usb.zsk945028.Zsk945028Application.run(Zsk945028Application.java:208)
+  	at org.springframework.boot.SpringApplication.callRunner(SpringApplication.java:791)
+  	at org.springframework.boot.SpringApplication.callRunners(SpringApplication.java:775)
+  	at org.springframework.boot.SpringApplication.run(SpringApplication.java:345)
+  	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1343)
+  	at org.springframework.boot.SpringApplication.run(SpringApplication.java:1332)
+  	at ru.usb.zsk945028.Zsk945028Application.main(Zsk945028Application.java:76)
+  	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+  	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+  	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+  	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+  	at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:49)
+  Caused by: java.io.EOFException: SSL peer shut down incorrectly
+  	at java.base/sun.security.ssl.SSLSocketInputRecord.read(SSLSocketInputRecord.java:483)
+  	at java.base/sun.security.ssl.SSLSocketInputRecord.readFully(SSLSocketInputRecord.java:461)
+  	at java.base/sun.security.ssl.SSLSocketInputRecord.decodeInputRecord(SSLSocketInputRecord.java:243)
+  	at java.base/sun.security.ssl.SSLSocketInputRecord.decode(SSLSocketInputRecord.java:181)
+  	at java.base/sun.security.ssl.SSLTransport.decode(SSLTransport.java:111)
+  	at java.base/sun.security.ssl.SSLSocketImpl.decode(SSLSocketImpl.java:1426)
+  	... 16 more}
+
+)
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.261 MSK|SSLSocketImpl.java:1656|close the underlying socket
+javax.net.ssl|DEBUG|11|restartedMain|2026-09-17 14:08:31.262 MSK|SSLSocketImpl.java:1675|close the SSL connection (initiative)
+2026-09-17 14:08:31.262  INFO 24096 --- [  restartedMain] ru.usb.zsk945028.Zsk945028Application    : Ssl report:
+=== Отчёт TLS для portal5test.cbr.ru:443 ===
+ОШИБКА: SSLHandshakeException: Remote host terminated the handshake
+
+
+--------------
+
 package ru.usb.zsk945028.configs;
 
 import org.apache.http.client.HttpClient;
