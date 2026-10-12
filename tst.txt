@@ -1,1 +1,83 @@
-111
+Параметр producer.cft.max-in-flight=4
+Коротко
+Это не настройка Kafka-продюсера, а собственный параметр backpressure вашего сервиса, реализованный через Semaphore в KafkaProducerService. Он ограничивает количество сообщений, которые одновременно «в полёте» (отправлены, но ещё не подтверждены брокером) до 4.
+
+Как это работает в вашем коде
+В KafkaProducerService:
+          
+              @Value("${producer.cft.max-in-flight:4}")
+              private int maxInFlight;
+              
+              private Semaphore inFlight;
+              
+              @PostConstruct
+              void init() {
+                  this.inFlight = new Semaphore(maxInFlight, true);  // fair=true
+              }
+
+В sendBatch(...):
+
+            // 1. Ждём свободный слот — здесь поток БЛОКИРУЕТСЯ, если все 4 заняты
+            inFlight.acquire();
+            
+            // 2. Отправляем асинхронно
+            future = kafkaTemplate.send(topic, key, json);
+            
+            // 3. В callback-е (успех или ошибка) — освобождаем слот
+            future.whenComplete((result, ex) -> {
+                try {
+                    // ... обработка ...
+                } finally {
+                    inFlight.release();
+                }
+            });
+
+Схема работы
+
+        maxInFlight = 4
+        
+        Слот 1: [send #1 ............. ack]  ← занят
+        Слот 2: [send #2 ............. ack]  ← занят
+        Слот 3: [send #3 ............. ack]  ← занят
+        Слот 4: [send #4 ............. ack]  ← занят
+                 ▲
+                 │
+            Поток-читатель БД пытается отправить send #5
+            → inFlight.acquire() БЛОКИРУЕТСЯ
+            → читатель БД «засыпает», пока один из слотов не освободится
+
+
+Зачем это нужно (backpressure)
+Без такого ограничения возможен сценарий:
+
+          Читатель БД быстро стримит строки, GetDataService формирует батчи, sendBatch вызывается в цикле.
+          
+          KafkaTemplate.send асинхронный — он возвращает CompletableFuture сразу, не дожидаясь подтверждения брокера.
+          
+          Если Kafka отстаёт (медленный брокер, сетевая деградация, перегрузка), CompletableFuture-ов накапливается всё больше.
+          
+          Каждая future держит:
+          
+          ProducerRecord с сериализованным JSON (может быть megabytes),
+          
+          внутренние объекты Kafka Producer (ProducerBatch, RecordAccumulator),
+          
+          ваш List<Document> через замыкание opIds.
+          
+          → OOM по heap на пике.
+          
+          Semaphore заставляет sendBatch блокироваться вместо того, чтобы копить сообщения в памяти. Читатель БД тормозит — это и есть обратное давление.
+
+Связь с Kafka-параметром max.in.flight.requests.per.connection
+Это два разных параметра, и важно их не путать:            
+            
+            Параметр	Где задаётся	Что ограничивает	По умолчанию
+            producer.cft.max-in-flight	ваш application.properties	Количество прикладных sendBatch, ожидающих ack. Управляется вашим Semaphore.	4
+            spring.kafka.producer.properties.max.in.flight.requests.per.connection	Kafka-продюсер	- 
+              Количество сетевых запросов в одном соединении, ожидающих   подтверждения до брокера.	5 (в application.properties у вас задано явно)
+            Первый параметр работает над вторым: пока Kafka-продюсер держит свои 5 in-flight запросов, ваш Semaphore дополнительно ограничивает приложение до 4.
+            
+            Важно: при enable.idempotence=true Kafka требует max.in.flight.requests.per.connection ≤ 5 — иначе идемпотентность ломается. 
+            Ваш 4 для producer.cft.max-in-flight не конфликтует с этим правилом, потому что относится к другому уровню.
+
+
