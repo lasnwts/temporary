@@ -1,1 +1,18 @@
-111
+$bytes = [System.IO.File]::ReadAllBytes("C:\path\to\yourfile.zip")
+$hex = ($bytes[0..1] | ForEach-Object { "{0:X2}" -f $_ }) -join " "
+
+if ($hex -eq "1F 8B") {
+    Write-Host "Это формат GZIP (сигнатура 1F 8B)" -ForegroundColor Green
+} elseif ($hex -eq "50 4B") {
+    Write-Host "Это настоящий ZIP-архив (сигнатура 50 4B)" -ForegroundColor Cyan
+} else {
+    Write-Host "Неизвестный формат. Первые байты: $hex" -ForegroundColor Yellow
+}
+
+
+Чтобы определить, что файл с расширением .zip на самом деле является архивом Gzip (.gz / .gzip), нужно проверить его первые байты (сигнатуру / magic bytes).
+У формата Gzip первые два байта в шестнадцатеричном виде — это 1F 8B (в ASCII соответствуют символам \x1f\x8b). У настоящего ZIP-архива первые байты всегда 50 4B 03 04 (PK\x03\x04).
+
+Способ 1: Проверка через PowerShell (самый быстрый)
+
+Откройте PowerShell и выполните следующую команду (замените C:\path\to\yourfile.zip на путь к вашему файлу):
