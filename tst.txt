@@ -1,3 +1,68 @@
+изменение в наименовании
+# ******************************************************************************************************
+# Datasource, Database (Diasoft CFT)
+# ******************************************************************************************************
+spring.dias.datasource.url=jdbc:sqlserver://127.0.0.1:1433;databasename=mandatory;trustServerCertificate=true;responseBuffering=adaptive;sendStringParametersAsUnicode=false
+spring.dias.datasource.username=sa
+spring.dias.datasource.password=dREZfag23e
+spring.dias.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+# Параметры пула HikariCP (опционально, но полезно)
+spring.dias.datasource.hikari.maximum-pool-size=10
+spring.dias.datasource.hikari.connection-timeout=30000
+
+=============================================================================================================
+package ru.usb.pub_diasoft_cft_import.config;
+
+import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+
+import javax.sql.DataSource;
+
+/**
+ * Конфигурация источника данных Diasoft.
+ * <p>
+ * Spring Boot по умолчанию читает свойства только из {@code spring.datasource.*}.
+ * Здесь мы явно связываем бин {@link DataSource} с префиксом
+ * {@code spring.dias.datasource.*}, чтобы отделить CFT-подключение от любых
+ * других источников данных в приложении (например, для Actuator или будущих БД).
+ */
+@Configuration
+public class DiasDataSourceConfig {
+
+    /**
+     * Свойства подключения под префиксом {@code spring.dias.datasource}.
+     * {@link DataSourceProperties} транслирует {@code url} в {@code jdbcUrl}
+     * и подхватывает {@code driver-class-name}, {@code username}, {@code password}.
+     */
+    @Bean
+    @Primary
+    @ConfigurationProperties("spring.dias.datasource")
+    public DataSourceProperties diasDataSourceProperties() {
+        return new DataSourceProperties();
+    }
+
+    /**
+     * Сам пул соединений. Hikari-специфичные параметры (pool size, timeout)
+     * читаются из {@code spring.dias.datasource.hikari.*}.
+     */
+    @Bean
+    @Primary
+    @ConfigurationProperties("spring.dias.datasource.hikari")
+    public DataSource diasDataSource(
+            @Qualifier("diasDataSourceProperties") DataSourceProperties properties) {
+        return properties.initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
+                .build();
+    }
+}
+==========================================
+
 Параметр producer.cft.max-in-flight=4
 Коротко
 Это не настройка Kafka-продюсера, а собственный параметр backpressure вашего сервиса, реализованный через Semaphore в KafkaProducerService. Он ограничивает количество сообщений, которые одновременно «в полёте» (отправлены, но ещё не подтверждены брокером) до 4.
