@@ -1,19 +1,6 @@
-изменение в наименовании
-# ******************************************************************************************************
-# Datasource, Database (Diasoft CFT)
-# ******************************************************************************************************
-spring.dias.datasource.url=jdbc:sqlserver://127.0.0.1:1433;databasename=mandatory;trustServerCertificate=true;responseBuffering=adaptive;sendStringParametersAsUnicode=false
-spring.dias.datasource.username=sa
-spring.dias.datasource.password=dREZfag23e
-spring.dias.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
-
-# Параметры пула HikariCP (опционально, но полезно)
-spring.dias.datasource.hikari.maximum-pool-size=10
-spring.dias.datasource.hikari.connection-timeout=30000
-
-=============================================================================================================
 package ru.usb.pub_diasoft_cft_import.config;
 
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
@@ -21,24 +8,17 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 
-/**
- * Конфигурация источника данных Diasoft.
- * <p>
- * Spring Boot по умолчанию читает свойства только из {@code spring.datasource.*}.
- * Здесь мы явно связываем бин {@link DataSource} с префиксом
- * {@code spring.dias.datasource.*}, чтобы отделить CFT-подключение от любых
- * других источников данных в приложении (например, для Actuator или будущих БД).
- */
 @Configuration
 public class DiasDataSourceConfig {
 
     /**
-     * Свойства подключения под префиксом {@code spring.dias.datasource}.
-     * {@link DataSourceProperties} транслирует {@code url} в {@code jdbcUrl}
-     * и подхватывает {@code driver-class-name}, {@code username}, {@code password}.
+     * Читает базовые свойства spring.dias.datasource.* (url, username, password, driver-class-name).
      */
     @Bean
     @Primary
@@ -48,101 +28,83 @@ public class DiasDataSourceConfig {
     }
 
     /**
-     * Сам пул соединений. Hikari-специфичные параметры (pool size, timeout)
-     * читаются из {@code spring.dias.datasource.hikari.*}.
+     * Отдельный бин HikariConfig, куда Spring забиндит только hikari-специфичные
+     * свойства из spring.dias.datasource.hikari.* (maximum-pool-size,
+     * connection-timeout, pool-name и т.д.).
+     * <p>
+     * Важно: сюда НЕ попадают url/username/password — их мы установим вручную
+     * ниже, чтобы явно передать jdbcUrl.
      */
     @Bean
     @Primary
     @ConfigurationProperties("spring.dias.datasource.hikari")
-    public DataSource diasDataSource(
-            @Qualifier("diasDataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder()
-                .type(HikariDataSource.class)
-                .build();
+    public HikariConfig diasHikariConfig() {
+        return new HikariConfig();
+    }
+
+    /**
+     * Собираем HikariDataSource из двух источников:
+     * <ul>
+     *   <li>{@link DataSourceProperties} — url/username/password/driver-class-name;</li>
+     *   <li>{@link HikariConfig} — параметры пула из application.properties.</li>
+     * </ul>
+     * Явный {@code setJdbcUrl(props.getUrl())} устраняет проблему
+     * "Driver ... claims to not accept jdbcUrl", которая возникала
+     * при ручной конфигурации DataSource без этого вызова.
+     */
+    @Bean
+    @Primary
+    public HikariDataSource diasDataSource(
+            @Qualifier("diasDataSourceProperties") DataSourceProperties props,
+            @Qualifier("diasHikariConfig") HikariConfig hikariConfig) {
+
+        // Явно проставляем подключение — обязательно ДО new HikariDataSource(cfg)
+        hikariConfig.setJdbcUrl(props.getUrl());
+        hikariConfig.setUsername(props.getUsername());
+        hikariConfig.setPassword(props.getPassword());
+
+        if (props.getDriverClassName() != null && !props.getDriverClassName().isBlank()) {
+            hikariConfig.setDriverClassName(props.getDriverClassName());
+        }
+
+        return new HikariDataSource(hikariConfig);
+    }
+
+    /**
+     * JdbcTemplate, используемый в NikoilCftOperationDao и StatusUpdater.
+     */
+    @Bean
+    @Primary
+    public JdbcTemplate jdbcTemplate(
+            @Qualifier("diasDataSource") DataSource dataSource) {
+        return new JdbcTemplate(dataSource);
+    }
+
+    /**
+     * Менеджер транзакций — нужен для @Transactional в StatusUpdater.markSent().
+     */
+    @Bean
+    @Primary
+    public PlatformTransactionManager transactionManager(
+            @Qualifier("diasDataSource") DataSource dataSource) {
+        return new DataSourceTransactionManager(dataSource);
     }
 }
-==========================================
 
-Параметр producer.cft.max-in-flight=4
-Коротко
-Это не настройка Kafka-продюсера, а собственный параметр backpressure вашего сервиса, реализованный через Semaphore в KafkaProducerService. Он ограничивает количество сообщений, которые одновременно «в полёте» (отправлены, но ещё не подтверждены брокером) до 4.
+==================================================================
 
-Как это работает в вашем коде
-В KafkaProducerService:
-          
-              @Value("${producer.cft.max-in-flight:4}")
-              private int maxInFlight;
-              
-              private Semaphore inFlight;
-              
-              @PostConstruct
-              void init() {
-                  this.inFlight = new Semaphore(maxInFlight, true);  // fair=true
-              }
+spring.dias.datasource.url=jdbc:sqlserver://127.0.0.1:1433;databasename=mandatory;trustServerCertificate=true;responseBuffering=adaptive;sendStringParametersAsUnicode=false
+spring.dias.datasource.username=sa
+spring.dias.datasource.password=dREZfag23e
+spring.dias.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
 
-В sendBatch(...):
-
-            // 1. Ждём свободный слот — здесь поток БЛОКИРУЕТСЯ, если все 4 заняты
-            inFlight.acquire();
-            
-            // 2. Отправляем асинхронно
-            future = kafkaTemplate.send(topic, key, json);
-            
-            // 3. В callback-е (успех или ошибка) — освобождаем слот
-            future.whenComplete((result, ex) -> {
-                try {
-                    // ... обработка ...
-                } finally {
-                    inFlight.release();
-                }
-            });
-
-Схема работы
-
-        maxInFlight = 4
-        
-        Слот 1: [send #1 ............. ack]  ← занят
-        Слот 2: [send #2 ............. ack]  ← занят
-        Слот 3: [send #3 ............. ack]  ← занят
-        Слот 4: [send #4 ............. ack]  ← занят
-                 ▲
-                 │
-            Поток-читатель БД пытается отправить send #5
-            → inFlight.acquire() БЛОКИРУЕТСЯ
-            → читатель БД «засыпает», пока один из слотов не освободится
-
-
-Зачем это нужно (backpressure)
-Без такого ограничения возможен сценарий:
-
-          Читатель БД быстро стримит строки, GetDataService формирует батчи, sendBatch вызывается в цикле.
-          
-          KafkaTemplate.send асинхронный — он возвращает CompletableFuture сразу, не дожидаясь подтверждения брокера.
-          
-          Если Kafka отстаёт (медленный брокер, сетевая деградация, перегрузка), CompletableFuture-ов накапливается всё больше.
-          
-          Каждая future держит:
-          
-          ProducerRecord с сериализованным JSON (может быть megabytes),
-          
-          внутренние объекты Kafka Producer (ProducerBatch, RecordAccumulator),
-          
-          ваш List<Document> через замыкание opIds.
-          
-          → OOM по heap на пике.
-          
-          Semaphore заставляет sendBatch блокироваться вместо того, чтобы копить сообщения в памяти. Читатель БД тормозит — это и есть обратное давление.
-
-Связь с Kafka-параметром max.in.flight.requests.per.connection
-Это два разных параметра, и важно их не путать:            
-            
-            Параметр	Где задаётся	Что ограничивает	По умолчанию
-            producer.cft.max-in-flight	ваш application.properties	Количество прикладных sendBatch, ожидающих ack. Управляется вашим Semaphore.	4
-            spring.kafka.producer.properties.max.in.flight.requests.per.connection	Kafka-продюсер	- 
-              Количество сетевых запросов в одном соединении, ожидающих   подтверждения до брокера.	5 (в application.properties у вас задано явно)
-            Первый параметр работает над вторым: пока Kafka-продюсер держит свои 5 in-flight запросов, ваш Semaphore дополнительно ограничивает приложение до 4.
-            
-            Важно: при enable.idempotence=true Kafka требует max.in.flight.requests.per.connection ≤ 5 — иначе идемпотентность ломается. 
-            Ваш 4 для producer.cft.max-in-flight не конфликтует с этим правилом, потому что относится к другому уровню.
+spring.dias.datasource.hikari.pool-name=dias-pool
+spring.dias.datasource.hikari.maximum-pool-size=10
+spring.dias.datasource.hikari.minimum-idle=2
+spring.dias.datasource.hikari.connection-timeout=30000
+spring.dias.datasource.hikari.idle-timeout=600000
+spring.dias.datasource.hikari.max-lifetime=1800000
+spring.dias.datasource.hikari.connection-test-query=SELECT 1
+spring.dias.datasource.hikari.auto-commit=true
 
 
