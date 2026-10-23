@@ -1,0 +1,61 @@
+package ru.usb.pub_cft_diasoft_import.dto;
+
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+/**
+ * Один элемент массива {@code Documents} из конверта {@link CftStatusBatch}.
+ * <p>
+ * Контракт:
+ * <ul>
+ *   <li>{@code CFTId} — идентификатор документа в ЦФТ (может быть {@code null});</li>
+ *   <li>{@code UnicId} — уникальный идентификатор операции ({@code OperationID} в Diasoft);</li>
+ *   <li>{@code ErrorString} — текст ошибки; пустой — успех.</li>
+ * </ul>
+ * Поле {@code Status} в текущем контракте отсутствует — оно вычисляется
+ * по содержимому {@code ErrorString}: пусто → {@code PROV}, непусто → {@code ERROR}.
+ * Если ЦФТ начнёт присылать явный {@code Status} — он переопределит вычисление.
+ */
+@Data
+@NoArgsConstructor
+@ToString
+@JsonFormat(with = JsonFormat.Feature.ACCEPT_CASE_INSENSITIVE_PROPERTIES)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class IncomingMessage {
+
+    @JsonProperty("CFTId")
+    private Long cftId;
+
+    @JsonProperty("UnicId")
+    private Long unicId;
+
+    /**
+     * Текст ошибки от ЦФТ. Основное имя в контракте — {@code ErrorString}.
+     * Алиасы {@code Txtvoz}/{@code Error}/{@code error} — совместимость
+     * со старыми версиями контракта.
+     */
+    @JsonProperty("ErrorString")
+    @JsonAlias({"Txtvoz", "Error", "error"})
+    private String txtvoz;
+
+    /** Явный статус от ЦФТ (если начнут присылать). */
+    @JsonProperty("Status")
+    private String status;
+
+    /**
+     * Статус по правилу «пусто = успех». Если ЦФТ прислал явный {@code Status} —
+     * возвращается он. Иначе: {@code ErrorString} пустой → {@code PROV},
+     * непустой → {@code ERROR}.
+     */
+    public String getStatus() {
+        if (status != null && !status.isBlank()) {
+            return status;
+        }
+        return (txtvoz == null || txtvoz.isBlank()) ? "PROV" : "ERROR";
+    }
+}
