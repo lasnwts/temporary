@@ -1,0 +1,173 @@
+package ru.usb.pub_cft_diasoft_import.service.kafka;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.stereotype.Component;
+import ru.usb.pub_cft_diasoft_import.config.Configure;
+import ru.usb.pub_cft_diasoft_import.dto.CftStatusBatch;
+import ru.usb.pub_cft_diasoft_import.dto.IncomingMessage;
+import ru.usb.pub_cft_diasoft_import.service.db.CftStatusService;
+import ru.usb.pub_cft_diasoft_import.service.db.DatabaseUnavailableException;
+import ru.usb.pub_cft_diasoft_import.service.mail.ServiceMailError;
+import ru.usb.pub_cft_diasoft_import.service.metrics.CftMetrics;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class CftStatusConsumer {
+
+    /** id контейнера — по нему ApiLayer находит слушателя в KafkaListenerEndpointRegistry. */
+    public static final String LISTENER_ID = "cftStatusListener";
+
+    private static final String MAIL_SUBJECT_PARSE_ERROR =
+            "Ошибка парсинга сообщения из Kafka (cft-status)";
+    private static final String MAIL_SUBJECT_INVALID =
+            "Невалидное сообщение из Kafka: отсутствует UnicId";
+
+    /** Ограничение на длину raw-сообщения в логе, чтобы не раздувать файл логов. */
+    private static final int RAW_LOG_LIMIT = 500;
+
+    /**
+     * Тип тела сообщения Kafka — конверт {@link CftStatusBatch}
+     * с массивом {@code Documents}. Вынесен в константу, чтобы не создавать
+     * анонимный {@code TypeReference} на каждой итерации цикла.
+     */
+    private static final TypeReference<CftStatusBatch> MESSAGE_BATCH_TYPE =
+            new TypeReference<>() {};
+
+    private final CftStatusService cftStatusService;
+    private final ObjectMapper objectMapper;
+    private final ServiceMailError mailError;
+    private final CftMetrics metrics;
+    private final Configure config;
+
+    /** Имя топика — для писем и логов. Совпадает с тем, что в {@link KafkaListener}. */
+    @Value("${consumer.cft.topic}")
+    private String topic;
+
+    @SuppressWarnings("java:S3776")
+    @KafkaListener(
+            id = LISTENER_ID,
+            topics = "${consumer.cft.topic}",
+            groupId = "${consumer.cft.group-id:pub-cft-diasoft-import}",
+            containerFactory = "cftBatchKafkaListenerContainerFactory"
+    )
+    public void consumeBatch(List<String> rawMessages, Acknowledgment ack) {
+        if (rawMessages == null || rawMessages.isEmpty()) {
+            ack.acknowledge();
+            return;
+        }
+
+        // Страховка: если между poll и обработкой сервис выключили — не пишем в БД.
+        if (!config.isServiceEnabled()) {
+            log.info("Сервис отключён, батч из {} сообщений пропущен без обработки", rawMessages.size());
+            ack.acknowledge();
+            return;
+        }
+
+        log.info("Получено {} сообщений из Kafka (topic={})", rawMessages.size(), topic);
+        List<IncomingMessage> validMessages = new ArrayList<>();
+
+        for (String raw : rawMessages) {
+            // Каждое сообщение Kafka — конверт {"Documents": [ ... ]}.
+            try {
+                CftStatusBatch batch = objectMapper.readValue(raw, MESSAGE_BATCH_TYPE);
+
+                if (batch == null
+                        || batch.getDocuments() == null
+                        || batch.getDocuments().isEmpty()) {
+                    log.debug("Пустой массив Documents в сообщении Kafka, пропуск");
+                    continue;
+                }
+
+                for (IncomingMessage msg : batch.getDocuments()) {
+                    if (isValid(msg)) {
+                        validMessages.add(msg);
+                        metrics.incParseSuccess();
+                    } else {
+                        metrics.incInvalidMessage();
+                        log.warn("Невалидное сообщение (нет UnicId): {}", msg);
+                        notifyInvalid(msg);
+                    }
+                }
+            } catch (Exception e) {
+                // Битый JSON / не конверт — пропускаем всё сообщение, но уведомляем.
+                metrics.incParseError();
+                log.error("Ошибка парсинга сообщения (topic={}, len={}): {}",
+                        topic, raw.length(), truncate(raw), e);
+                notifyParseError(raw, e);
+            }
+        }
+
+        try {
+            if (!validMessages.isEmpty()) {
+                int updated = cftStatusService.updateStatuses(validMessages);
+                for (int i = 0; i < updated; i++) {
+                    metrics.incDbUpdate();
+                }
+                log.info("Успешно обновлено {} записей из {}", updated, validMessages.size());
+            }
+            ack.acknowledge();
+        } catch (DatabaseUnavailableException dbEx) {
+            log.error("БД недоступна, offset не коммитится, повтор через backoff", dbEx);
+            throw dbEx;
+        } catch (Exception e) {
+            metrics.incDbUpdateFailure();
+            log.error("Ошибка обработки батча, offset не коммитим", e);
+            throw e;
+        }
+    }
+
+    /** Письмо о битом JSON с raw-сообщением (полный raw — только в письме). */
+    private void notifyParseError(String raw, Exception ex) {
+        String body = "Не удалось распарсить сообщение из Kafka.\n"
+                + "Топик: " + topic + "\n"
+                + "Причина: " + ex.getClass().getSimpleName() + ": " + ex.getMessage() + "\n"
+                + "Raw-сообщение:\n" + raw;
+        trySendMail(MAIL_SUBJECT_PARSE_ERROR, body);
+    }
+
+    /** Письмо о конкретном элементе массива без обязательного UnicId. */
+    private void notifyInvalid(IncomingMessage msg) {
+        String body = "Сообщение из Kafka не содержит обязательного поля UnicId.\n"
+                + "Топик: " + topic + "\n"
+                + "Сообщение: " + msg;
+        trySendMail(MAIL_SUBJECT_INVALID, body);
+    }
+
+    /** Сбой почты не должен ломать обработку. */
+    private void trySendMail(String subject, String body) {
+        try {
+            mailError.sendMailErrorSubject(subject, body);
+        } catch (Exception mailEx) {
+            log.error("Не удалось отправить письмо '{}'", subject, mailEx);
+        }
+    }
+
+    /**
+     * Обязательное поле — {@code UnicId}. {@code Status} вычисляется из
+     * {@code ErrorString} в {@link IncomingMessage#getStatus()} и всегда
+     * не {@code null}, поэтому проверять его отдельно не нужно.
+     */
+    private boolean isValid(IncomingMessage msg) {
+        return msg != null && msg.getUnicId() != null;
+    }
+
+    /** Ограничивает длину raw-сообщения для лога. */
+    private static String truncate(String raw) {
+        if (raw == null) {
+            return "null";
+        }
+        return raw.length() <= RAW_LOG_LIMIT
+                ? raw
+                : raw.substring(0, RAW_LOG_LIMIT) + "... (truncated, total " + raw.length() + " chars)";
+    }
+}
