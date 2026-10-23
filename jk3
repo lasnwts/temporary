@@ -1,0 +1,37 @@
+package ru.usb.pub_cft_diasoft_import.dto;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+import java.util.List;
+
+/**
+ * Конверт сообщения из Kafka-топика {@code cft-status}.
+ * <p>
+ * Реальный JSON, приходящий от ЦФТ, выглядит так:
+ * <pre>
+ * {
+ *   "Documents": [
+ *     { "CFTId": null, "ErrorString": "", "UnicId": "10084007" },
+ *     { "CFTId": null, "ErrorString": " Не найден пользователь ...", "UnicId": "10084007" }
+ *   ]
+ * }
+ * </pre>
+ * Раньше консьюмер пытался десериализовать этот объект напрямую в {@code List<IncomingMessage>}
+ * и падал с {@code MismatchedInputException}. Теперь обёртка снимает эту проблему.
+ */
+@Data
+@NoArgsConstructor
+@ToString
+@JsonFormat(with = JsonFormat.Feature.ACCEPT_CASE_INSENSITIVE_PROPERTIES)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class CftStatusBatch {
+
+    /** Массив статусов документов внутри конверта. */
+    @JsonProperty("Documents")
+    private List<IncomingMessage> documents;
+}
