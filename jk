@@ -1,173 +1,406 @@
-package ru.usb.pub_cft_diasoft_import.service.kafka;
+package ru.usb.pub_diasoft_cft_import.service.kafka;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.support.Acknowledgment;
-import org.springframework.stereotype.Component;
-import ru.usb.pub_cft_diasoft_import.config.Configure;
-import ru.usb.pub_cft_diasoft_import.dto.CftStatusBatch;
-import ru.usb.pub_cft_diasoft_import.dto.IncomingMessage;
-import ru.usb.pub_cft_diasoft_import.service.db.CftStatusService;
-import ru.usb.pub_cft_diasoft_import.service.db.DatabaseUnavailableException;
-import ru.usb.pub_cft_diasoft_import.service.mail.ServiceMailError;
-import ru.usb.pub_cft_diasoft_import.service.metrics.CftMetrics;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
+import org.springframework.stereotype.Service;
+import ru.usb.pub_diasoft_cft_import.config.LG;
+import ru.usb.pub_diasoft_cft_import.dto.DealDocuments;
+import ru.usb.pub_diasoft_cft_import.dto.Document;
+import ru.usb.pub_diasoft_cft_import.dto.DocumentsMessage;
+import ru.usb.pub_diasoft_cft_import.service.db.StatusUpdater;
+import ru.usb.pub_diasoft_cft_import.service.mail.ServiceMailError;
 
-import java.util.ArrayList;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 
-@Slf4j
-@Component
+/**
+ * Сервис пакетной (batch) отправки документов {@link Document} в Kafka.
+ *
+ * <h2>Назначение</h2>
+ * Класс является «мостом» между источником данных (обычно — стриминг
+ * документов из БД) и топиком Kafka. Один вызов {@link #sendBatch(String, List)}
+ * соответствует одному сообщению Kafka. Тело сообщения — JSON-конверт вида
+ * <pre>
+ * {
+ *   "documents": [
+ *     {
+ *       "P_Deal_Id": "&lt;DealID&gt;",
+ *       "DocumentParams": [ { ...Document... }, { ...Document... } ]
+ *     }
+ *   ]
+ * }
+ * </pre>
+ * Т.е. все документы одного {@code DealID} (одного батча) оборачиваются
+ * в один элемент массива {@code documents} с «шапкой» {@code P_Deal_Id}.
+ *
+ * <p>
+ * К каждому сообщению дополнительно прикрепляется Kafka-header
+ * {@code metadata} со строковым JSON-значением
+ * {@code {"requestType":"ds-cft-operation"}}. Имя header'а и его значение
+ * конфигурируются через {@code producer.cft.header.name} и
+ * {@code producer.cft.header.value} соответственно.
+ *
+ * <h2>Backpressure</h2>
+ * Ключевая особенность реализации — управление «обратным давлением»
+ * (backpressure) через {@link Semaphore}:
+ * <ul>
+ *   <li>Одновременно «в полёте» (отправлено, но ещё не подтверждено
+ *       брокером) может находиться не более {@code maxInFlight} сообщений;</li>
+ *   <li>Если лимит исчерпан, следующий {@link #sendBatch} блокируется
+ *       на {@code semaphore.acquire()};</li>
+ *   <li>Это тормозит вызывающий поток (например, читатель БД) и
+ *       не позволяет внутренним буферам Kafka-продюсера и приложения
+ *       расти бесконечно при отставании брокера.</li>
+ * </ul>
+ *
+ * <h2>Гарантии порядка</h2>
+ * Порядок отправки сообщений сохраняется, потому что:
+ * <ul>
+ *   <li>{@link #sendBatch} вызывается из одного потока последовательно;</li>
+ *   <li>Kafka-продюсер настроен на идемпотентность и
+ *       {@code max.in.flight.requests.per.connection=5};</li>
+ *   <li>Семафор ограничивает число «в полёте» до {@code maxInFlight}.</li>
+ * </ul>
+ * Заголовки не влияют на ключ партиционирования, поэтому гарантии
+ * порядка сохраняются.
+ *
+ * <h2>Обновление статуса</h2>
+ * После успешной отправки батча в Kafka выполняется пометка документов
+ * как отправленных через {@link StatusUpdater#markSent(List)} — по списку
+ * {@code operationId}, извлечённому из документов. Пометка выполняется
+ * <b>внутри</b> callback-а отправки, до освобождения слота семафора,
+ * чтобы гарантировать: пока статус не обновлён, окно in-flight не
+ * расширяется.
+ *
+ * <h2>Потокобезопасность</h2>
+ * <ul>
+ *   <li>{@link #inFlight} — thread-safe (fair-семафор);</li>
+ *   <li>{@link #sentCount} и {@link #failedCount} — {@link AtomicInteger};</li>
+ *   <li>Поля конфигурации ({@code topic}, {@code maxInFlight},
+ *       {@code headerName}, {@code headerValue}) инициализируются
+ *       один раз при создании бина и далее только читаются.</li>
+ * </ul>
+ * Метод {@link #sendBatch(String, List)} рассчитан на последовательный
+ * вызов из одного потока (см. раздел «Гарантии порядка»).
+ *
+ * <h2>Обработка ошибок</h2>
+ * <ul>
+ *   <li>Ошибка сериализации в JSON — инкремент {@code failedCount}, лог,
+ *       письмо на {@code mailTo}, возврат;</li>
+ *   <li>Исключение при вызове {@code kafkaTemplate.send} — освобождение слота,
+ *       инкремент {@code failedCount}, лог, письмо, возврат;</li>
+ *   <li>Асинхронная ошибка от брокера — инкремент {@code failedCount}, лог,
+ *       письмо, освобождение слота (без обновления статуса).</li>
+ * </ul>
+ * Повторные попытки на этом уровне не выполняются — они делегированы
+ * настройкам Kafka-продюсера ({@code retries}, {@code delivery.timeout.ms})
+ * и/или внешнему оркестратору.
+ * <p>
+ * Частота писем ограничивается {@link ServiceMailError} через
+ * {@code mail.delay.minutes} — при «шторме» ошибок письмо уйдёт не чаще,
+ * чем раз в этот интервал.
+ */
+@Log4j2
+@Service
 @RequiredArgsConstructor
-public class CftStatusConsumer {
+public class KafkaProducerService {
 
-    /** id контейнера — по нему ApiLayer находит слушателя в KafkaListenerEndpointRegistry. */
-    public static final String LISTENER_ID = "cftStatusListener";
+    /** Шаблон для отправки строковых сообщений в Kafka. */
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
-    private static final String MAIL_SUBJECT_PARSE_ERROR =
-            "Ошибка парсинга сообщения из Kafka (cft-status)";
-    private static final String MAIL_SUBJECT_INVALID =
-            "Невалидное сообщение из Kafka: отсутствует UnicId";
-
-    /** Ограничение на длину raw-сообщения в логе, чтобы не раздувать файл логов. */
-    private static final int RAW_LOG_LIMIT = 500;
-
-    /**
-     * Тип тела сообщения Kafka — конверт {@link CftStatusBatch}
-     * с массивом {@code Documents}. Вынесен в константу, чтобы не создавать
-     * анонимный {@code TypeReference} на каждой итерации цикла.
-     */
-    private static final TypeReference<CftStatusBatch> MESSAGE_BATCH_TYPE =
-            new TypeReference<>() {};
-
-    private final CftStatusService cftStatusService;
+    /** Сериализатор документов в JSON. */
     private final ObjectMapper objectMapper;
-    private final ServiceMailError mailError;
-    private final CftMetrics metrics;
-    private final Configure config;
 
-    /** Имя топика — для писем и логов. Совпадает с тем, что в {@link KafkaListener}. */
-    @Value("${consumer.cft.topic}")
+    /** Компонент пометки документов как отправленных в БД. */
+    private final StatusUpdater statusUpdater;
+
+    /** Сервис отправки писем об ошибках (с подавлением частых повторов). */
+    private final ServiceMailError mailError;
+
+    /** Имя целевого топика Kafka (берётся из конфигурации). */
+    @Value("${producer.cft.topic}")
     private String topic;
 
-    @SuppressWarnings("java:S3776")
-    @KafkaListener(
-            id = LISTENER_ID,
-            topics = "${consumer.cft.topic}",
-            groupId = "${consumer.cft.group-id:pub-cft-diasoft-import}",
-            containerFactory = "cftBatchKafkaListenerContainerFactory"
-    )
-    public void consumeBatch(List<String> rawMessages, Acknowledgment ack) {
-        if (rawMessages == null || rawMessages.isEmpty()) {
-            ack.acknowledge();
+    /**
+     * Максимум одновременно неподтверждённых сообщений.
+     * Если Kafka не успевает — {@link #sendBatch} блокируется.
+     * Значение по умолчанию — 4.
+     */
+    @Value("${producer.cft.max-in-flight:4}")
+    private int maxInFlight;
+
+    /**
+     * Имя Kafka-header'а, в котором передаётся JSON с метаданными сообщения.
+     * По умолчанию — {@code metadata}.
+     */
+    @Value("${producer.cft.header.name:metadata}")
+    private String headerName;
+
+    /**
+     * JSON-строка, помещаемая в header {@link #headerName}.
+     * По умолчанию — {@code {"requestType":"ds-cft-operation"}}.
+     */
+    @Value("${producer.cft.header.value:{\"requestType\":\"ds-cft-operation\"}}")
+    private String headerValue;
+
+    /**
+     * Семафор backpressure. Инициализируется в {@link #init()} ({@code @PostConstruct}),
+     * потому что {@code maxInFlight} приходит из {@code @Value} уже после
+     * создания бина и не может быть использован в конструкторе.
+     * {@code fair=true} обеспечивает FIFO-порядок освобождения слотов.
+     */
+    private Semaphore inFlight;
+
+    /**
+     * Готовые байты значения header'а — вычисляются один раз в {@link #init()},
+     * чтобы не кодировать строку в UTF-8 на каждом сообщении.
+     */
+    private byte[] headerValueBytes;
+
+    /** Счётчик успешно отправленных батчей (по факту подтверждения брокером). */
+    private final AtomicInteger sentCount = new AtomicInteger(0);
+
+    /** Счётчик неуспешных батчей (сериализация, ошибка send, ошибка брокера). */
+    private final AtomicInteger failedCount = new AtomicInteger(0);
+
+    /**
+     * Инициализирует семафор и «предсобранное» значение header'а
+     * после инъекции {@code maxInFlight} и параметров header'а.
+     * Вызывается Spring-ом один раз при создании бина.
+     */
+    @jakarta.annotation.PostConstruct
+    void init() {
+        this.inFlight = new Semaphore(maxInFlight, true);  // fair=true — FIFO-порядок
+        this.headerValueBytes = headerValue.getBytes(StandardCharsets.UTF_8);
+        log.info("{}:KafkaProducerService initialized: maxInFlight={}, topic={}, header={}={}",
+                LG.USBLOGINFO, maxInFlight, topic, headerName, headerValue);
+    }
+
+    /** @return количество успешно отправленных батчей за время жизни бина. */
+    public int getSentCount()   { return sentCount.get(); }
+
+    /** @return количество неуспешных отправок за время жизни бина. */
+    public int getFailedCount() { return failedCount.get(); }
+
+    /** Сбрасывает оба счётчика (обычно между запусками/тестами). */
+    public void resetCounters() {
+        sentCount.set(0);
+        failedCount.set(0);
+    }
+
+    /**
+     * Отправляет список документов {@link Document} одного {@code DealID}
+     * одним сообщением в Kafka.
+     * <p>
+     * Тело сообщения — JSON-конверт:
+     * <pre>
+     * {
+     *   "documents": [
+     *     {
+     *       "P_Deal_Id": "&lt;key&gt;",
+     *       "DocumentParams": [ ...docs... ]
+     *     }
+     *   ]
+     * }
+     * </pre>
+     * К сообщению прикрепляется header {@link #headerName} со значением
+     * {@link #headerValue} (по умолчанию {@code metadata} →
+     * {@code {"requestType":"ds-cft-operation"}}).
+     *
+     * <p>
+     * Поведение:
+     * <ol>
+     *   <li>Пустой/{@code null} список игнорируется;</li>
+     *   <li>Список заворачивается в {@link DocumentsMessage} и сериализуется
+     *       в JSON — при ошибке батч пропускается с инкрементом {@code failedCount}
+     *       и письмом;</li>
+     *   <li>Из документов извлекаются {@code operationId} для последующего
+     *       обновления статуса;</li>
+     *   <li>Поток блокируется на {@code inFlight.acquire()}, если окно
+     *       in-flight заполнено (это и есть backpressure);</li>
+     *   <li>Сообщение отправляется асинхронно; слот освобождается в
+     *       callback-е — либо после успешной пометки статуса, либо
+     *       при ошибке.</li>
+     * </ol>
+     *
+     * @param key  ключ партиционирования (DealID); также используется
+     *             как {@code P_Deal_Id} в обёртке сообщения
+     * @param docs список документов одного DealID; {@code null} или пустой — no-op
+     */
+    @SuppressWarnings("java:S125")
+    public void sendBatch(String key, List<Document> docs) {
+        if (docs == null || docs.isEmpty()) {
             return;
         }
 
-        // Страховка: если между poll и обработкой сервис выключили — не пишем в БД.
-        if (!config.isServiceEnabled()) {
-            log.info("Сервис отключён, батч из {} сообщений пропущен без обработки", rawMessages.size());
-            ack.acknowledge();
-            return;
-        }
-
-        log.info("Получено {} сообщений из Kafka (topic={})", rawMessages.size(), topic);
-        List<IncomingMessage> validMessages = new ArrayList<>();
-
-        for (String raw : rawMessages) {
-            // Каждое сообщение Kafka — конверт {"Documents": [ ... ]}.
-            try {
-                CftStatusBatch batch = objectMapper.readValue(raw, MESSAGE_BATCH_TYPE);
-
-                if (batch == null
-                        || batch.getDocuments() == null
-                        || batch.getDocuments().isEmpty()) {
-                    log.debug("Пустой массив Documents в сообщении Kafka, пропуск");
-                    continue;
-                }
-
-                for (IncomingMessage msg : batch.getDocuments()) {
-                    if (isValid(msg)) {
-                        validMessages.add(msg);
-                        metrics.incParseSuccess();
-                    } else {
-                        metrics.incInvalidMessage();
-                        log.warn("Невалидное сообщение (нет UnicId): {}", msg);
-                        notifyInvalid(msg);
-                    }
-                }
-            } catch (Exception e) {
-                // Битый JSON / не конверт — пропускаем всё сообщение, но уведомляем.
-                metrics.incParseError();
-                log.error("Ошибка парсинга сообщения (topic={}, len={}): {}",
-                        topic, raw.length(), truncate(raw), e);
-                notifyParseError(raw, e);
-            }
-        }
-
+        // 1. Заворачиваем список в конверт:
+        //      { "documents": [ { "P_Deal_Id": key, "DocumentParams": docs } ] }
+        //    Ошибка сериализации — не отправляем, сразу учитываем как failure
+        //    (повтор не имеет смысла на этом уровне).
+        final String json;
         try {
-            if (!validMessages.isEmpty()) {
-                int updated = cftStatusService.updateStatuses(validMessages);
-                for (int i = 0; i < updated; i++) {
-                    metrics.incDbUpdate();
-                }
-                log.info("Успешно обновлено {} записей из {}", updated, validMessages.size());
-            }
-            ack.acknowledge();
-        } catch (DatabaseUnavailableException dbEx) {
-            log.error("БД недоступна, offset не коммитится, повтор через backoff", dbEx);
-            throw dbEx;
+            DealDocuments dealWrapper = new DealDocuments(key, docs);
+            DocumentsMessage message = new DocumentsMessage(List.of(dealWrapper));
+            json = objectMapper.writeValueAsString(message);
         } catch (Exception e) {
-            metrics.incDbUpdateFailure();
-            log.error("Ошибка обработки батча, offset не коммитим", e);
-            throw e;
+            failedCount.incrementAndGet();
+            log.error("{}:Kafka serialize error: key={}, size={}, error={}",
+                    LG.USBLOGINFO, key, docs.size(), e.getMessage(), e);
+            notifyError("Ошибка сериализации батча в JSON",
+                    key, docs.size(), null, e);
+            return;
         }
-    }
 
-    /** Письмо о битом JSON с raw-сообщением (полный raw — только в письме). */
-    private void notifyParseError(String raw, Exception ex) {
-        String body = "Не удалось распарсить сообщение из Kafka.\n"
-                + "Топик: " + topic + "\n"
-                + "Причина: " + ex.getClass().getSimpleName() + ": " + ex.getMessage() + "\n"
-                + "Raw-сообщение:\n" + raw;
-        trySendMail(MAIL_SUBJECT_PARSE_ERROR, body);
-    }
+        // 2. Снимок OperationID для последующего UPDATE статуса.
+        //    Делаем это ДО отправки, чтобы в callback-е не зависеть от
+        //    исходного списка (он может быть переиспользован вызывающим кодом).
+        final List<BigInteger> opIds = docs.stream()
+                .map(Document::getOperationId)
+                .filter(Objects::nonNull)
+                .toList();
 
-    /** Письмо о конкретном элементе массива без обязательного UnicId. */
-    private void notifyInvalid(IncomingMessage msg) {
-        String body = "Сообщение из Kafka не содержит обязательного поля UnicId.\n"
-                + "Топик: " + topic + "\n"
-                + "Сообщение: " + msg;
-        trySendMail(MAIL_SUBJECT_INVALID, body);
-    }
-
-    /** Сбой почты не должен ломать обработку. */
-    private void trySendMail(String subject, String body) {
+        // 3. Backpressure: ждём свободный слот в окне in-flight.
+        //    Если Kafka отстаёт — здесь поток «засыпает», а не копит сообщения в памяти.
         try {
-            mailError.sendMailErrorSubject(subject, body);
+            inFlight.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("{}:sendBatch interrupted while waiting for in-flight slot: key={}",
+                    LG.USBLOGINFO, key);
+            return;
+        }
+
+        // 3.5. Заголовки сообщения: { "<headerName>": "<headerValue>" }.
+        //      По умолчанию — metadata = {"requestType":"ds-cft-operation"}.
+        //      Значение уже закодировано в UTF-8 в init().
+        final RecordHeaders headers = new RecordHeaders();
+        headers.add(headerName, headerValueBytes);
+
+        // 4. Синхронный вызов send. Если он бросает исключение —
+        //    слот нужно вернуть вручную, иначе окно «протечёт».
+        final CompletableFuture<SendResult<String, String>> future;
+        try {
+            ProducerRecord<String, String> record = new ProducerRecord<>(
+                    topic,
+                    null,   // partition — на усмотрение продюсера (по key)
+                    key,
+                    json,
+                    headers
+            );
+            future = kafkaTemplate.send(record);
+        } catch (Exception e) {
+            inFlight.release();
+            failedCount.incrementAndGet();
+            log.error("{}:Kafka send threw: key={}, size={}, error={}",
+                    LG.USBLOGINFO, key, docs.size(), e.getMessage(), e);
+            notifyError("Синхронная ошибка отправки в Kafka",
+                    key, docs.size(), null, e);
+            return;
+        }
+
+        // 5. Асинхронный callback: успех/ошибка от брокера.
+        //    Слот освобождается в finally — гарантированно, при любом исходе.
+        future.whenComplete((result, ex) -> {
+            try {
+                if (ex != null) {
+                    failedCount.incrementAndGet();
+                    log.error("{}:Kafka send FAILED: key={}, size={}, error={}",
+                            LG.USBLOGINFO, key, docs.size(), ex.getMessage(), ex);
+                    notifyError("Асинхронная ошибка отправки в Kafka",
+                            key, docs.size(), null, ex);
+                    return;
+                }
+                sentCount.incrementAndGet();
+                log.debug("{}:Kafka sent: topic={}, partition={}, offset={}, key={}, size={}",
+                        LG.USBLOGINFO,
+                        topic,
+                        result.getRecordMetadata().partition(),
+                        result.getRecordMetadata().offset(),
+                        key, docs.size());
+
+                // Пометка статуса — только после подтверждения брокером.
+                // Выполняется до release(), чтобы окно in-flight не расширялось,
+                // пока фактическая работа по этому батчу ещё не завершена.
+                if (!opIds.isEmpty()) {
+                    statusUpdater.markSent(opIds);
+                }
+            } finally {
+                // Освобождаем окно ТОЛЬКО после того, как:
+                //  - Kafka подтвердила или окончательно провалилась;
+                //  - UPDATE статуса выполнен (если это @Async — метод
+                //    возвращается сразу, но фактическая работа ещё идёт
+                //    в пуле; см. примечание ниже).
+                inFlight.release();
+            }
+        });
+    }
+
+    /**
+     * Отправляет письмо об ошибке работы с Kafka.
+     * <p>
+     * Исключение не глотает — вызывающий код продолжает работать по своей
+     * логике (инкремент счётчиков, release слота и т.п.). Падение самого
+     * почтового сервиса не должно маскировать исходную ошибку.
+     *
+     * @param reason  краткое описание причины (для темы и тела письма)
+     * @param key     ключ партиционирования (может быть {@code null})
+     * @param size    размер батча документов
+     * @param offset  offset в Kafka (если известен), иначе {@code null}
+     * @param e       исключение
+     */
+    private void notifyError(String reason, String key, int size, Long offset, Throwable e) {
+        String body = buildErrorBody(reason, key, size, offset, e);
+        try {
+            mailError.sendMailErrorSubject(
+                    "Ошибка Kafka producer",
+                    body
+            );
         } catch (Exception mailEx) {
-            log.error("Не удалось отправить письмо '{}'", subject, mailEx);
+            log.error("{}: Не удалось отправить письмо об ошибке Kafka",
+                    LG.USBLOGERROR, mailEx);
         }
     }
 
     /**
-     * Обязательное поле — {@code UnicId}. {@code Status} вычисляется из
-     * {@code ErrorString} в {@link IncomingMessage#getStatus()} и всегда
-     * не {@code null}, поэтому проверять его отдельно не нужно.
+     * Формирует тело письма с контекстом ошибки.
      */
-    private boolean isValid(IncomingMessage msg) {
-        return msg != null && msg.getUnicId() != null;
-    }
-
-    /** Ограничивает длину raw-сообщения для лога. */
-    private static String truncate(String raw) {
-        if (raw == null) {
-            return "null";
+    private String buildErrorBody(String reason, String key, int size,
+                                  Long offset, Throwable e) {
+        String nl = System.lineSeparator();
+        StringBuilder sb = new StringBuilder();
+        sb.append("Ошибка при работе с Kafka").append(nl)
+                .append("Причина:      ").append(reason).append(nl)
+                .append("Topic:        ").append(topic).append(nl)
+                .append("Key:          ").append(key == null ? "<null>" : key).append(nl)
+                .append("Размер батча: ").append(size).append(nl);
+        if (offset != null) {
+            sb.append("Offset:       ").append(offset).append(nl);
         }
-        return raw.length() <= RAW_LOG_LIMIT
-                ? raw
-                : raw.substring(0, RAW_LOG_LIMIT) + "... (truncated, total " + raw.length() + " chars)";
+        sb.append("Исключение:   ").append(e.getClass().getName()).append(nl)
+                .append("Сообщение:    ").append(e.getMessage()).append(nl)
+                .append("Отправлено:   ").append(sentCount.get()).append(nl)
+                .append("Провалено:    ").append(failedCount.get()).append(nl);
+
+        // Короткий стектрейс (первые 20 строк) — чтобы письмо не разрослось.
+        StackTraceElement[] st = e.getStackTrace();
+        if (st != null && st.length > 0) {
+            int limit = Math.min(20, st.length);
+            sb.append(nl).append("Стек (первые ").append(limit).append("):").append(nl);
+            for (int i = 0; i < limit; i++) {
+                sb.append("  at ").append(st[i]).append(nl);
+            }
+        }
+        return sb.toString();
     }
 }
