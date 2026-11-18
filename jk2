@@ -1,9 +1,192 @@
-mailSubjects: pub-diasoft-cft-import
+package ru.usb.pub_cft_diasoft_import.service.kafka;
 
-producer:
-  cft:
-    topic: ds-cft-operations
-    max-in-flight: 4
-    header:
-      name: metadata
-      value: '{"requestType":"ds-cft-operation"}'
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.kafka.support.Acknowledgment;
+import org.springframework.stereotype.Component;
+import ru.usb.pub_cft_diasoft_import.config.Configure;
+import ru.usb.pub_cft_diasoft_import.dto.CftStatusBatch;
+import ru.usb.pub_cft_diasoft_import.dto.IncomingMessage;
+import ru.usb.pub_cft_diasoft_import.service.db.CftStatusService;
+import ru.usb.pub_cft_diasoft_import.service.db.DatabaseUnavailableException;
+import ru.usb.pub_cft_diasoft_import.service.mail.ServiceMailError;
+import ru.usb.pub_cft_diasoft_import.service.metrics.CftMetrics;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class CftStatusConsumer {
+
+    public static final String LISTENER_ID = "cftStatusListener";
+
+    private static final String MAIL_SUBJECT_PARSE_ERROR =
+            "Ошибка парсинга сообщения из Kafka (cft-status)";
+    private static final String MAIL_SUBJECT_INVALID =
+            "Невалидное сообщение из Kafka: отсутствует UnicId";
+    private static final int RAW_LOG_LIMIT = 500;
+
+    private static final TypeReference<CftStatusBatch> MESSAGE_BATCH_TYPE =
+            new TypeReference<>() {};
+
+    private final CftStatusService cftStatusService;
+    private final ObjectMapper objectMapper;
+    private final ServiceMailError mailError;
+    private final CftMetrics metrics;
+    private final Configure config;
+
+    @Value("${consumer.cft.topic}")
+    private String topic;
+
+    @SuppressWarnings({"java:S3776","java:S1141"})
+    @KafkaListener(
+            id = LISTENER_ID,
+            topics = "${consumer.cft.topic}",
+            groupId = "${consumer.cft.group-id:pub-cft-diasoft-import}",
+            containerFactory = "cftBatchKafkaListenerContainerFactory"
+    )
+    public void consumeBatch(List<String> rawMessages, Acknowledgment ack) {
+        if (rawMessages == null || rawMessages.isEmpty()) {
+            ack.acknowledge();
+            return;
+        }
+
+        if (!config.isServiceEnabled()) {
+            log.info("Сервис отключён, батч из {} сообщений пропущен без обработки", rawMessages.size());
+            ack.acknowledge();
+            return;
+        }
+
+        log.info("Получено {} сообщений из Kafka (topic={})", rawMessages.size(), topic);
+        List<IncomingMessage> validMessages = new ArrayList<>();
+
+        for (String raw : rawMessages) {
+            // Последняя линия обороны: ни одно сообщение не должно
+            // уронить батч, иначе Kafka будет отдавать его бесконечно.
+            try {
+                processRawMessage(raw, validMessages);
+            } catch (Exception e) {
+                safeIncParseError();
+                log.error("Непредвиденная ошибка обработки сообщения — пропускаем, чтобы ack прошёл", e);
+            }
+        }
+
+        try {
+            if (!validMessages.isEmpty()) {
+                int updated = cftStatusService.updateStatuses(validMessages);
+                try {
+                    for (int i = 0; i < updated; i++) {
+                        metrics.incDbUpdate();
+                    }
+                } catch (Exception m) {
+                    log.warn("Не удалось записать метрику dbUpdate", m);
+                }
+                log.info("Успешно обновлено {} записей из {}", updated, validMessages.size());
+            }
+            ack.acknowledge();
+        } catch (DatabaseUnavailableException dbEx) {
+            log.error("БД недоступна, offset не коммитится, повтор через backoff", dbEx);
+            throw dbEx;
+        } catch (Exception e) {
+            safeIncDbUpdateFailure();
+            log.error("Ошибка обработки батча, offset не коммитим", e);
+            throw e;
+        }
+    }
+
+    /**
+     * Разбирает одно сообщение. Все ошибки парсинга/валидации
+     * поглощаются: лог + письмо, но наружу не пробрасываются.
+     */
+    private void processRawMessage(String raw, List<IncomingMessage> validMessages) {
+        CftStatusBatch batch;
+        try {
+            batch = objectMapper.readValue(raw, MESSAGE_BATCH_TYPE);
+        } catch (Exception e) {
+            handleParseError(raw, e);
+            return;
+        }
+
+        if (batch == null || batch.getDocuments() == null || batch.getDocuments().isEmpty()) {
+            log.debug("Пустой массив Documents в сообщении Kafka, пропуск");
+            return;
+        }
+
+        for (IncomingMessage msg : batch.getDocuments()) {
+            try {
+                if (isValid(msg)) {
+                    validMessages.add(msg);
+                    safeIncParseSuccess();
+                } else {
+                    safeIncInvalidMessage();
+                    log.warn("Невалидное сообщение (нет UnicId): {}", msg);
+                    notifyInvalid(msg);
+                }
+            } catch (Exception inner) {
+                log.error("Ошибка обработки одного документа — пропускаем", inner);
+            }
+        }
+    }
+
+    private void handleParseError(String raw, Exception e) {
+        safeIncParseError();
+        try {
+            log.error("Ошибка парсинга сообщения (topic={}, len={}): {}",
+                    topic, raw == null ? 0 : raw.length(), truncate(raw), e);
+        } catch (Exception ignored) {
+            // лог не должен ронять батч
+        }
+        notifyParseError(raw, e);
+    }
+
+    // ---- безопасные обёртки над метриками ----
+
+    private void safeIncParseError()      { try { metrics.incParseError(); }      catch (Exception m) { log.warn("metrics.incParseError failed", m); } }
+    private void safeIncParseSuccess()    { try { metrics.incParseSuccess(); }    catch (Exception m) { log.warn("metrics.incParseSuccess failed", m); } }
+    private void safeIncInvalidMessage()  { try { metrics.incInvalidMessage(); }  catch (Exception m) { log.warn("metrics.incInvalidMessage failed", m); } }
+    private void safeIncDbUpdateFailure() { try { metrics.incDbUpdateFailure(); } catch (Exception m) { log.warn("metrics.incDbUpdateFailure failed", m); } }
+
+    // ---- письма и утилиты (без изменений) ----
+
+    private void notifyParseError(String raw, Exception ex) {
+        String body = "Не удалось распарсить сообщение из Kafka.\n"
+                + "Топик: " + topic + "\n"
+                + "Причина: " + ex.getClass().getSimpleName() + ": " + ex.getMessage() + "\n"
+                + "Raw-сообщение:\n" + raw;
+        trySendMail(MAIL_SUBJECT_PARSE_ERROR, body);
+    }
+
+    private void notifyInvalid(IncomingMessage msg) {
+        String body = "Сообщение из Kafka не содержит обязательного поля UnicId.\n"
+                + "Топик: " + topic + "\n"
+                + "Сообщение: " + msg;
+        trySendMail(MAIL_SUBJECT_INVALID, body);
+    }
+
+    private void trySendMail(String subject, String body) {
+        try {
+            mailError.sendMailErrorSubject(subject, body);
+        } catch (Exception mailEx) {
+            log.error("Не удалось отправить письмо '{}'", subject, mailEx);
+        }
+    }
+
+    private boolean isValid(IncomingMessage msg) {
+        return msg != null && msg.getUnicId() != null;
+    }
+
+    private static String truncate(String raw) {
+        if (raw == null) {
+            return "null";
+        }
+        return raw.length() <= RAW_LOG_LIMIT
+                ? raw
+                : raw.substring(0, RAW_LOG_LIMIT) + "... (truncated, total " + raw.length() + " chars)";
+    }
+}
